@@ -1,59 +1,78 @@
 const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
-const sachSchema = new Schema({
-    _id: {
-        type: Schema.Types.ObjectId,
+const sachSchema = new Schema(
+    {
+        maSach: {
+            type: String,
+            required: true,
+            unique: true,
+            trim: true,
+            uppercase: true,
+            index: true,
+        },
+        tenSach: {
+            type: String,
+            required: true,
+            trim: true,
+            index: 'text', // Full-text search
+        },
+        moTa: {
+            type: String,
+            default: '',
+            trim: true,
+        },
+        donGia: {
+            type: Number,
+            required: true,
+            min: 0,
+        },
+        soQuyen: {
+            type: Number,
+            required: true,
+            min: 0,
+            default: 0,
+            index: true,
+        },
+        namXuatBan: {
+            type: Number,
+            required: true,
+        },
+        maNxb: {
+            type: Schema.Types.ObjectId,
+            ref: 'NhaXuatBan',
+            required: true,
+            index: true,
+        },
+        maTg: [
+            {
+                type: Schema.Types.ObjectId,
+                ref: 'TacGia',
+                required: true,
+                index: true,
+            },
+        ],
+        maDm: [
+            {
+                type: Schema.Types.ObjectId,
+                ref: 'DanhMuc',
+                required: true,
+                index: true,
+            },
+        ],
+        hinhAnh: {
+            type: String,
+            default: '',
+        },
+        ngonNgu: {
+            type: String,
+            default: 'Tiếng Việt',
+            trim: true,
+        },
     },
-    MASACH: {
-        type: String,
-        required: true,
-        unique: true,
+    {
+        timestamps: true,
     },
-    TENSACH: {
-        type: String,
-        required: true,
-        trim: true,
-    },
-    MOTA: {
-        type: String,
-        default: '',
-    },
-    DONGIA: {
-        type: Number,
-        required: true,
-        min: 0,
-    },
-    SOQUYEN: {
-        type: Number,
-        required: true,
-        min: 0,
-        default: 0,
-    },
-    NAMXUATBAN: {
-        type: Number,
-        required: true,
-    },
-        MANXB: {
-        type: Schema.Types.ObjectId,
-        ref: 'NhaXuatBan'
-    },
-    MATG: [{
-        type: Schema.Types.ObjectId,
-        ref: 'TacGia'
-    }],
-    MADM: [{
-        type: Schema.Types.ObjectId,
-        ref: 'DanhMuc'
-    }],
-    createdAt: {
-        type: Date,
-        default: Date.now,
-    },
-    updatedAt: {
-        type: Date,
-        default: Date.now,
-    },
-});
+);
 
 module.exports = mongoose.model('Sach', sachSchema, 'sachs');

@@ -1,16 +1,30 @@
 const express = require('express');
 const cors = require('cors');
-const app = express();
+const routes = require('./routes');
+const errorHandler = require('./middlewares/error.middleware');
 
-const sachRoutes = require('./routes/sach.route');
+const app = express();
 
 app.use(cors());
 app.use(express.json());
 
-app.use('/api/sach', sachRoutes);
+// Fake hoặc giải mã JWT user middleware cho demo (nếu có header x-user-role)
+app.use((req, res, next) => {
+    const roleHeader = req.headers['x-user-role'];
+    if (roleHeader) {
+        req.user = { maVaiTro: roleHeader };
+    }
+    next();
+});
+
+// API Routes
+app.use('/api', routes);
 
 app.get('/', (req, res) => {
-    res.json({ message: 'Welcome to contact book application.' });
+    res.json({ message: 'Chào mừng đến với hệ thống thư viện CozyReads API.' });
 });
+
+// Error handling middleware
+app.use(errorHandler);
 
 module.exports = app;

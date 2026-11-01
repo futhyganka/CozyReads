@@ -8,6 +8,8 @@
     "main": "/src/server.js",
     "scripts": {
         "start": "nodemon src/server.js",
+        "test": "node tests/run-all.js",
+        "seed": "node scripts/seed-data.js",
         "format": "prettier . --write --single-quote --trailing-comma all --tab-width 4",
         "format:check": "prettier . --check"
     },
