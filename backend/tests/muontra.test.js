@@ -75,21 +75,24 @@ async function testMuonTra() {
         dienThoai: '0912345678',
     });
 
-    // Kiểm tra định dạng maDocGia (8 ký tự: 3 chữ + 5 số) và msnv (6 ký tự: 3 chữ + 3 số)
+    // Kiểm tra định dạng maDocGia (10 ký tự: DG + 1 chữ + 7 số) và msnv (8 ký tự: S + 1 chữ + 6 số)
     console.log(
-        'Case 1: Kiểm tra định dạng maDocGia (8 ký tự) và msnv (6 ký tự)',
+        'Case 1: Kiểm tra định dạng maDocGia (10 ký tự) và msnv (8 ký tự)',
     );
     assert.strictEqual(
         docGia.maDocGia.length,
-        8,
-        'maDocGia phải có độ dài 8 ký tự',
+        10,
+        'maDocGia phải có độ dài 10 ký tự',
     );
     assert(
-        /^RDG\d{5}$/.test(docGia.maDocGia),
-        'maDocGia phải khớp dạng RDGxxxxx',
+        /^DG[A-Z]\d{7}$/.test(docGia.maDocGia),
+        'maDocGia phải khớp dạng DG + chữ + 7 số',
     );
-    assert.strictEqual(nhanVien.msnv.length, 6, 'msnv phải có độ dài 6 ký tự');
-    assert(/^STF\d{3}$/.test(nhanVien.msnv), 'msnv phải khớp dạng STFxxx');
+    assert.strictEqual(nhanVien.msnv.length, 8, 'msnv phải có độ dài 8 ký tự');
+    assert(
+        /^S[A-Z]\d{6}$/.test(nhanVien.msnv),
+        'msnv phải khớp dạng S + chữ + 6 số',
+    );
 
     // Case 2: Mượn sách thành công, kiểm tra tồn kho
     console.log('Case 2: Mượn sách thành công & kiểm tra tồn kho');

@@ -93,6 +93,26 @@ async function testPhanQuyen() {
     }
     assert.strictEqual(biChanDangNhapKhoaThe, true);
 
+    // Khi độc giả là sinh viên đã tốt nghiệp -> Thông báo yêu cầu đăng ký thẻ tự do
+    await DocGia.findByIdAndUpdate(docGia._id, {
+        trangThai: TRANG_THAI_DOC_GIA.HOAT_DONG,
+        daTotNghiep: true,
+    });
+    let biChanViTotNghiep = false;
+    try {
+        await AuthService.dangNhap({
+            email: 'auth_test@gmail.com',
+            password: 'mySecretPassword',
+        });
+    } catch (err) {
+        biChanViTotNghiep = true;
+        assert(
+            err.message.includes('Bạn đã tốt nghiệp') &&
+                err.message.includes('đăng ký thẻ độc giả tự do'),
+        );
+    }
+    assert.strictEqual(biChanViTotNghiep, true);
+
     console.log('✅ tests/phanquyen.test.js PASSED ALL CHECKS!');
 }
 

@@ -350,10 +350,16 @@ class AuthService {
             throw new ApiError(401, 'Email hoặc mật khẩu không chính xác.');
         }
 
-        // Nếu vai trò là độc giả, kiểm tra DocGia.trangThai
+        // Nếu vai trò là độc giả, kiểm tra DocGia.trangThai và tình trạng tốt nghiệp
         if (taiKhoan.maVaiTro === ROLES.DOCGIA) {
             const docGia = await DocGia.findById(taiKhoan._id);
             if (docGia) {
+                if (docGia.daTotNghiep) {
+                    throw new ApiError(
+                        403,
+                        'Bạn đã tốt nghiệp, nếu muốn tiếp tục sử dụng dịch vụ, vui lòng đăng ký thẻ độc giả tự do.',
+                    );
+                }
                 if (docGia.trangThai === TRANG_THAI_DOC_GIA.TAM_KHOA) {
                     throw new ApiError(403, 'Thẻ độc giả đang bị tạm khóa.');
                 }
