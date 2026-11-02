@@ -3,7 +3,7 @@ const { Schema } = mongoose;
 
 const nhaXuatBanSchema = new Schema(
     {
-        maNxb: {
+        maNXB: {
             type: String,
             required: true,
             unique: true,
@@ -28,4 +28,4 @@ const nhaXuatBanSchema = new Schema(
     },
 );
 
-module.exports = mongoose.model('NhaXuatBan', nhaXuatBanSchema, 'nhaXuatBans');
+module.exports = mongoose.model('NhaXuatBan', nhaXuatBanSchema, 'nhaxuatbans');

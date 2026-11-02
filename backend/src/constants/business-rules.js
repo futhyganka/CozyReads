@@ -10,7 +10,7 @@ const BUSINESS_RULES = {
         TOI_THIEU: 0,
         SO_NGAY_TICH_DIEM: 3, // Mỗi 3 ngày không vi phạm được cộng 1 điểm
         DIEM_CONG_MOI_CHU_KY: 1,
-        DIEM_TRU_QUA_HAN_MOI_NGAY: 1, // Trả trễ / quá hạn trừ 1đ/ngày
+        DIEM_TRU_QUA_HAN_MOI_NGAY: 1, // Quá hạn mỗi ngày trừ 1 điểm cho mỗi cuốn sách quá hạn
         HE_SO_TRU_MAT_SACH: 2, // Làm mất sách trừ gấp 2 lần điểm quá hạn theo ngày
     },
 
@@ -85,8 +85,8 @@ const BUSINESS_RULES = {
         DA_BOI_THUONG: 'daBoiThuong',
     },
 
+    // Quá hạn không phạt tiền, chỉ trừ điểm!
     LOAI_THANH_TOAN: {
-        PHI_PHAT_QUA_HAN: 'phiPhat_quaHan',
         PHI_PHAT_MAT_SACH: 'phiPhat_matSach',
         PHI_GIA_HAN: 'phi_giaHan',
     },

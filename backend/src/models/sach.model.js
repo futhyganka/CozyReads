@@ -15,7 +15,7 @@ const sachSchema = new Schema(
             type: String,
             required: true,
             trim: true,
-            index: 'text', // Full-text search
+            index: 'text',
         },
         moTa: {
             type: String,
@@ -38,13 +38,13 @@ const sachSchema = new Schema(
             type: Number,
             required: true,
         },
-        maNxb: {
+        maNXB: {
             type: Schema.Types.ObjectId,
             ref: 'NhaXuatBan',
             required: true,
             index: true,
         },
-        maTg: [
+        maTG: [
             {
                 type: Schema.Types.ObjectId,
                 ref: 'TacGia',
@@ -52,7 +52,7 @@ const sachSchema = new Schema(
                 index: true,
             },
         ],
-        maDm: [
+        maDM: [
             {
                 type: Schema.Types.ObjectId,
                 ref: 'DanhMuc',

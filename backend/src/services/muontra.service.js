@@ -10,7 +10,6 @@ const DiemService = require('./diem.service');
 const {
     TRANG_THAI_MUON,
     TRANG_THAI_DOC_GIA,
-    BUSINESS_RULES,
     DIEM,
     LOAI_THANH_TOAN,
     TRANG_THAI_THANH_TOAN,
@@ -27,7 +26,7 @@ class MuonTraService {
             throw new ApiError(404, 'Không tìm thấy hồ sơ độc giả.');
         }
 
-        // 2. Thẻ độc giả / tài khoản đang bị khóa hoặc hủy
+        // 2. Thẻ độc giả đang bị khóa hoặc hủy
         if (docGia.trangThai === TRANG_THAI_DOC_GIA.TAM_KHOA) {
             throw new ApiError(
                 403,
@@ -63,7 +62,6 @@ class MuonTraService {
         }
 
         // 5. Kiểm tra số lượng sách đang mượn và hạn mức theo điểm độc giả
-        // Lưu ý nghiệp vụ: sách mất cũng sẽ tính vào tổng số sách đang mượn cho đến khi hoàn thành đền sách
         const soSachDangGiu = await TheoDoiMuonSach.countDocuments({
             docGia: docGiaId,
             trangThai: {
@@ -91,7 +89,7 @@ class MuonTraService {
             );
         }
 
-        // 6. Kiểm tra không được mượn trùng đầu sách (cùng maSach / sach) khi đang giữ
+        // 6. Kiểm tra không được mượn trùng đầu sách khi đang giữ
         const daMuonSachNay = await TheoDoiMuonSach.exists({
             docGia: docGiaId,
             sach: sachId,
@@ -141,13 +139,11 @@ class MuonTraService {
         ngayMuon = new Date(),
         soNgayMuon = 14,
     }) {
-        // Kiểm tra điều kiện mượn
         const { docGia, sach } = await this.kiemTraDieuKienMuon(
             docGiaId,
             sachId,
         );
 
-        // Kiểm tra nhân viên thực hiện mượn
         const nhanVien = await NhanVien.findById(msnvMuonId);
         if (!nhanVien) {
             throw new ApiError(
@@ -156,17 +152,14 @@ class MuonTraService {
             );
         }
 
-        // Tự động tính ngày hẹn trả (ngayMuon + soNgayMuon)
         const ngayBatDauMuon = new Date(ngayMuon);
         const ngayHenTra = new Date(
             ngayBatDauMuon.getTime() + soNgayMuon * 24 * 60 * 60 * 1000,
         );
 
-        // Giảm số lượng khả dụng của sách
         sach.soQuyen -= 1;
         await sach.save();
 
-        // Tạo bản ghi mượn sách
         const phieuMuon = new TheoDoiMuonSach({
             docGia: docGiaId,
             sach: sachId,
@@ -182,6 +175,7 @@ class MuonTraService {
 
     /**
      * Tiếp nhận trả sách
+     * Nghiệp vụ: Quá hạn không phạt tiền, chỉ trừ điểm tự động theo ngày!
      */
     static async traSach({ luotMuonId, msnvTraId, ngayTra = new Date() }) {
         const phieuMuon =
@@ -201,13 +195,12 @@ class MuonTraService {
             );
         }
 
-        // Ràng buộc nghiệp vụ: Không được ghi nhận trả sách trước hoặc bằng ngày mượn
+        // Ràng buộc: Ngày trả thực tế phải sau ngày mượn
         const thoiDiemTra = new Date(ngayTra);
         if (thoiDiemTra <= new Date(phieuMuon.ngayMuon)) {
             throw new ApiError(400, 'Ngày trả thực tế phải sau ngày mượn.');
         }
 
-        // Kiểm tra nhân viên tiếp nhận trả
         const nhanVien = await NhanVien.findById(msnvTraId);
         if (!nhanVien) {
             throw new ApiError(
@@ -216,45 +209,16 @@ class MuonTraService {
             );
         }
 
-        // Hoàn lại số lượng sách vào kho
+        // Hoàn lại tồn kho
         const sach = await Sach.findById(phieuMuon.sach._id || phieuMuon.sach);
         if (sach) {
             sach.soQuyen += 1;
             await sach.save();
         }
 
-        // Cập nhật thông tin trả sách
         phieuMuon.ngayTra = thoiDiemTra;
         phieuMuon.msnvTra = msnvTraId;
         phieuMuon.trangThai = TRANG_THAI_MUON.DA_TRA;
-
-        // Nếu trả trễ quá hạn: tính số ngày quá hạn và tiền phạt
-        let khoanPhat = null;
-        if (thoiDiemTra > new Date(phieuMuon.ngayHenTra)) {
-            const diffTime =
-                thoiDiemTra.getTime() -
-                new Date(phieuMuon.ngayHenTra).getTime();
-            const soNgayQuaHan = Math.max(
-                1,
-                Math.ceil(diffTime / (1000 * 60 * 60 * 24)),
-            );
-            phieuMuon.soNgayQuaHan = soNgayQuaHan;
-            phieuMuon.tienPhat = soNgayQuaHan * 5000; // 5k / ngày
-
-            // Tạo khoản thanh toán phí phạt quá hạn nếu chưa tạo
-            const maThanhToanPhat = `PHAT_QH_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
-            khoanPhat = new ThanhToan({
-                maThanhToan: maThanhToanPhat,
-                loai: LOAI_THANH_TOAN.PHI_PHAT_QUA_HAN,
-                soTien: phieuMuon.tienPhat,
-                docGia: phieuMuon.docGia,
-                theoDoiMuonSach: phieuMuon._id,
-                trangThai: TRANG_THAI_THANH_TOAN.CHO_XAC_NHAN,
-                ghiChu: `Phạt trả trễ hạn ${soNgayQuaHan} ngày`,
-            });
-            await khoanPhat.save();
-        }
-
         await phieuMuon.save();
 
         // Kiểm tra lại hạn mức của độc giả
@@ -262,17 +226,16 @@ class MuonTraService {
 
         return {
             phieuMuon,
-            khoanPhat,
+            khoanPhat: null, // Không phạt tiền quá hạn
         };
     }
 
     /**
      * Báo làm mất sách
      * Nghiệp vụ:
-     * - Lượt mượn phải được ghi nhận là 'daMat', KHÔNG được đánh dấu đã trả bình thường.
-     * - Sách mất cũng sẽ tính vào tổng số sách đang mượn cho đến khi hoàn thành đền sách.
-     * - Trừ x2 điểm quá hạn theo ngày tính đến thời điểm báo mất (nếu đã quá hạn).
-     * - Tự động tạo khoản thanh toán bồi thường (giá sách + phụ phí).
+     * - Chuyển sang 'daMat', tính vào số sách giữ.
+     * - Trừ x2 điểm quá hạn theo ngày tính đến thời điểm báo mất (nếu quá hạn).
+     * - Tạo khoản thanh toán bồi thường (giá sách).
      */
     static async baoMatSach({
         luotMuonId,
@@ -303,7 +266,7 @@ class MuonTraService {
         phieuMuon.trangThai = TRANG_THAI_MUON.DA_MAT;
         phieuMuon.ghiChu = `Báo mất sách vào ngày ${thoiDiemBaoMat.toISOString().split('T')[0]}`;
 
-        // Kiểm tra quá hạn tại thời điểm báo mất để trừ x2 điểm theo ngày
+        // Kiểm tra số ngày quá hạn tại thời điểm báo mất để trừ x2 điểm
         let soNgayQuaHan = 0;
         if (thoiDiemBaoMat > new Date(phieuMuon.ngayHenTra)) {
             const diffTime =
@@ -313,10 +276,8 @@ class MuonTraService {
                 1,
                 Math.ceil(diffTime / (1000 * 60 * 60 * 24)),
             );
-            phieuMuon.soNgayQuaHan = soNgayQuaHan;
         }
 
-        // Trừ điểm độc giả: nếu quá hạn thì phạt gấp đôi (x2) điểm quá hạn theo ngày
         const docGia = await DocGia.findById(phieuMuon.docGia);
         if (docGia) {
             const diemTru =
@@ -324,7 +285,7 @@ class MuonTraService {
                     ? soNgayQuaHan *
                       DIEM.DIEM_TRU_QUA_HAN_MOI_NGAY *
                       DIEM.HE_SO_TRU_MAT_SACH
-                    : 5; // Mất sách trong hạn trừ tối thiểu 5 điểm phạt tắc trách
+                    : 5;
             docGia.diemDocGia = Math.max(
                 DIEM.TOI_THIEU,
                 docGia.diemDocGia - diemTru,
@@ -333,28 +294,23 @@ class MuonTraService {
             await docGia.save();
         }
 
-        // Tính tiền bồi thường: Giá bìa sách + tiền phạt quá hạn (nếu có)
+        // Tiền bồi thường sách: Đơn giá sách
         const giaSach = phieuMuon.sach.donGia || 50000;
-        const tienPhatQuaHan = soNgayQuaHan * 5000;
-        const tongTienBoiThuong = giaSach + tienPhatQuaHan;
-
-        phieuMuon.tienPhat = tongTienBoiThuong;
+        phieuMuon.tienPhat = giaSach;
         await phieuMuon.save();
 
-        // Tạo hóa đơn thanh toán bồi thường
         const maThanhToanBoiThuong = `BOITHUONG_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
         const thanhToan = new ThanhToan({
             maThanhToan: maThanhToanBoiThuong,
             loai: LOAI_THANH_TOAN.PHI_PHAT_MAT_SACH,
-            soTien: tongTienBoiThuong,
+            soTien: giaSach,
             docGia: phieuMuon.docGia,
             theoDoiMuonSach: phieuMuon._id,
             trangThai: TRANG_THAI_THANH_TOAN.CHO_XAC_NHAN,
-            ghiChu: `Bồi thường mất sách "${phieuMuon.sach.tenSach}" (Đơn giá: ${giaSach}đ, Quá hạn: ${tienPhatQuaHan}đ)`,
+            ghiChu: `Bồi thường mất sách "${phieuMuon.sach.tenSach}" (Đơn giá: ${giaSach}đ)`,
         });
         await thanhToan.save();
 
-        // Kiểm tra vượt hạn mức do điểm bị giảm
         await DiemService.kiemTraVaXuLyVuotHanMucMuon(phieuMuon.docGia);
 
         return {

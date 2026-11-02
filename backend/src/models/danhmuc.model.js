@@ -3,7 +3,7 @@ const { Schema } = mongoose;
 
 const danhMucSchema = new Schema(
     {
-        maDm: {
+        maDM: {
             type: String,
             required: true,
             unique: true,
@@ -28,4 +28,4 @@ const danhMucSchema = new Schema(
     },
 );
 
-module.exports = mongoose.model('DanhMuc', danhMucSchema, 'danhMucs');
+module.exports = mongoose.model('DanhMuc', danhMucSchema, 'danhmucs');

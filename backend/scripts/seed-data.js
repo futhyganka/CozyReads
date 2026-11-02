@@ -1,10 +1,7 @@
 const mongoose = require('mongoose');
 const config = require('../src/config');
 const {
-    VaiTro,
     TaiKhoan,
-    DocGia,
-    NhanVien,
     NhaXuatBan,
     TacGia,
     DanhMuc,
@@ -29,18 +26,18 @@ async function seedData() {
         // 2. Nhà xuất bản
         console.log('2. Khởi tạo Nhà xuất bản...');
         const nxbTre = await NhaXuatBan.findOneAndUpdate(
-            { maNxb: 'NXB_TRE' },
+            { maNXB: 'NXB_TRE' },
             {
-                maNxb: 'NXB_TRE',
+                maNXB: 'NXB_TRE',
                 tenNxb: 'Nhà Xuất Bản Trẻ',
                 diaChi: '161B Lý Chính Thắng, Quận 3, TP.HCM',
             },
             { upsert: true, returnDocument: 'after' },
         );
         const nxbKimDong = await NhaXuatBan.findOneAndUpdate(
-            { maNxb: 'NXB_KIMDONG' },
+            { maNXB: 'NXB_KIMDONG' },
             {
-                maNxb: 'NXB_KIMDONG',
+                maNXB: 'NXB_KIMDONG',
                 tenNxb: 'Nhà Xuất Bản Kim Đồng',
                 diaChi: '55 Quang Trung, Hai Bà Trưng, Hà Nội',
             },
@@ -50,31 +47,31 @@ async function seedData() {
         // 3. Tác giả
         console.log('3. Khởi tạo Tác giả...');
         const tgNguyenNhatAnh = await TacGia.findOneAndUpdate(
-            { maTg: 'TG_NNA' },
-            { maTg: 'TG_NNA', tenTg: 'Nguyễn Nhật Ánh', quocTich: 'Việt Nam' },
+            { maTG: 'TG_NNA' },
+            { maTG: 'TG_NNA', tenTg: 'Nguyễn Nhật Ánh', quocTich: 'Việt Nam' },
             { upsert: true, returnDocument: 'after' },
         );
         const tgToHoai = await TacGia.findOneAndUpdate(
-            { maTg: 'TG_TH' },
-            { maTg: 'TG_TH', tenTg: 'Tô Hoài', quocTich: 'Việt Nam' },
+            { maTG: 'TG_TH' },
+            { maTG: 'TG_TH', tenTg: 'Tô Hoài', quocTich: 'Việt Nam' },
             { upsert: true, returnDocument: 'after' },
         );
 
         // 4. Danh mục
         console.log('4. Khởi tạo Danh mục...');
         const dmVanHoc = await DanhMuc.findOneAndUpdate(
-            { maDm: 'DM_VANHOC' },
+            { maDM: 'DM_VANHOC' },
             {
-                maDm: 'DM_VANHOC',
+                maDM: 'DM_VANHOC',
                 tenDm: 'Văn học thiếu nhi',
                 moTa: 'Truyện dài, tản văn, tiểu thuyết',
             },
             { upsert: true, returnDocument: 'after' },
         );
         const dmKhoaHoc = await DanhMuc.findOneAndUpdate(
-            { maDm: 'DM_KHOAHOC' },
+            { maDM: 'DM_KHOAHOC' },
             {
-                maDm: 'DM_KHOAHOC',
+                maDM: 'DM_KHOAHOC',
                 tenDm: 'Khoa học & Đời sống',
                 moTa: 'Sách khám phá khoa học kỹ thuật',
             },
@@ -92,9 +89,9 @@ async function seedData() {
                 donGia: 85000,
                 soQuyen: 10,
                 namXuatBan: 2022,
-                maNxb: nxbTre._id,
-                maTg: [tgNguyenNhatAnh._id],
-                maDm: [dmVanHoc._id],
+                maNXB: nxbTre._id,
+                maTG: [tgNguyenNhatAnh._id],
+                maDM: [dmVanHoc._id],
                 ngonNgu: 'Tiếng Việt',
             },
             { upsert: true, returnDocument: 'after' },
@@ -109,9 +106,9 @@ async function seedData() {
                 donGia: 65000,
                 soQuyen: 8,
                 namXuatBan: 2021,
-                maNxb: nxbKimDong._id,
-                maTg: [tgToHoai._id],
-                maDm: [dmVanHoc._id],
+                maNXB: nxbKimDong._id,
+                maTG: [tgToHoai._id],
+                maDM: [dmVanHoc._id],
                 ngonNgu: 'Tiếng Việt',
             },
             { upsert: true, returnDocument: 'after' },
@@ -142,6 +139,7 @@ async function seedData() {
                 chucVu: CHUC_VU_NHAN_VIEN.NHAN_VIEN,
                 dienThoai: '0977777777',
                 isAdmin: false,
+                taoHoSoDocGia: true, // Nhân viên này có thêm hồ sơ độc giả để mượn sách
             });
         }
 

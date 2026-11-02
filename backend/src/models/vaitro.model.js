@@ -28,8 +28,8 @@ const vaiTroSchema = new Schema(
     },
     {
         timestamps: true,
-        _id: false, // Sử dụng String _id tùy chỉnh
+        _id: false,
     },
 );
 
-module.exports = mongoose.model('VaiTro', vaiTroSchema, 'vaiTros');
+module.exports = mongoose.model('VaiTro', vaiTroSchema, 'vaitros');

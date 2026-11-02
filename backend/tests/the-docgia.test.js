@@ -1,6 +1,6 @@
 const assert = require('assert');
 const { connectTestDb, clearTestDb, disconnectTestDb } = require('./setup');
-const { DocGia, TaiKhoan } = require('../src/models');
+const { DocGia } = require('../src/models');
 const DocGiaService = require('../src/services/docgia.service');
 const AuthService = require('../src/services/auth.service');
 const {
@@ -27,11 +27,28 @@ async function testTheDocGia() {
     assert.strictEqual(GOI_GIA_HAN['6_thang'].soNgay, 180);
     assert.strictEqual(GOI_GIA_HAN['6_thang'].gia, 100000);
 
-    // Case 2: Tạo yêu cầu gia hạn thẻ
-    console.log('Case 2: Tạo yêu cầu gia hạn thẻ độc giả tự do');
+    // Case 2: Bắt buộc dienThoai khi tạo độc giả
+    console.log('Case 2: Bắt buộc số điện thoại khi đăng ký');
+    let biLoiKhongSoDt = false;
+    try {
+        await AuthService.dangKyDocGia({
+            email: 'nosdt@test.com',
+            password: '123',
+            hoLot: 'Lê',
+            ten: 'B',
+            dienThoai: '',
+        });
+    } catch (err) {
+        biLoiKhongSoDt = true;
+        assert(err.message.includes('bắt buộc'));
+    }
+    assert.strictEqual(biLoiKhongSoDt, true);
+
+    // Case 3: Tạo yêu cầu gia hạn thẻ
+    console.log('Case 3: Tạo yêu cầu gia hạn thẻ độc giả tự do');
     const { docGia } = await AuthService.dangKyDocGia({
         email: 'dg_tudo@test.com',
-        password: '123',
+        password: 'password123',
         hoLot: 'Phạm',
         ten: 'Hải',
         dienThoai: '0933333333',
@@ -45,20 +62,15 @@ async function testTheDocGia() {
     });
     assert.strictEqual(yeuCauGiaHan.soTien, 55000);
     assert.strictEqual(yeuCauGiaHan.goiGiaHan, '3_thang');
-    assert.strictEqual(
-        yeuCauGiaHan.theoDoiMuonSach,
-        null,
-        'Phí gia hạn không cần liên kết lượt mượn',
-    );
+    assert.strictEqual(yeuCauGiaHan.theoDoiMuonSach, null);
 
-    // Case 3: Độc giả tự do quá hạn thanh toán 7 ngày sẽ bị tạm khóa thẻ
+    // Case 4: Độc giả tự do quá hạn thanh toán 7 ngày sẽ bị tạm khóa thẻ
     console.log(
-        'Case 3: Quá hạn thanh toán chu kỳ quá 7 ngày -> tự động khóa thẻ',
+        'Case 4: Quá hạn thanh toán chu kỳ quá 7 ngày -> tự động khóa thẻ',
     );
     docGia.ngayHetHanThe = new Date('2026-01-01T00:00:00Z');
     await docGia.save();
 
-    // Quét vào ngày 2026-01-09 (quá 8 ngày kể từ ngày hết hạn thẻ)
     const thoiDiemQuet = new Date('2026-01-09T00:00:00Z');
     const ketQuaKhoa =
         await DocGiaService.quetVaKhoaTheDocGiaTuDo(thoiDiemQuet);
@@ -67,11 +79,11 @@ async function testTheDocGia() {
     const docGiaSauKhoa = await DocGia.findById(docGia._id);
     assert.strictEqual(docGiaSauKhoa.trangThai, TRANG_THAI_DOC_GIA.TAM_KHOA);
 
-    // Case 4: Sinh viên hết hạn thẻ và đã tốt nghiệp sẽ bị hủy thẻ
-    console.log('Case 4: Sinh viên tốt nghiệp hết hạn thẻ -> tự động hủy thẻ');
+    // Case 5: Sinh viên hết hạn thẻ và đã tốt nghiệp sẽ bị hủy thẻ
+    console.log('Case 5: Sinh viên tốt nghiệp hết hạn thẻ -> tự động hủy thẻ');
     const { docGia: sv } = await AuthService.dangKyDocGia({
         email: 'sinhvien@test.com',
-        password: '123',
+        password: 'password123',
         hoLot: 'Vũ',
         ten: 'Tuấn',
         dienThoai: '0944444444',

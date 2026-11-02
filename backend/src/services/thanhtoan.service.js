@@ -1,10 +1,4 @@
-const {
-    ThanhToan,
-    TheoDoiMuonSach,
-    DocGia,
-    TaiKhoan,
-    NhanVien,
-} = require('../models');
+const { ThanhToan, TheoDoiMuonSach, DocGia, NhanVien } = require('../models');
 const ApiError = require('../api-error');
 const {
     LOAI_THANH_TOAN,
@@ -17,11 +11,6 @@ const {
 class ThanhToanService {
     /**
      * Xác nhận thanh toán hợp lệ bởi nhân viên
-     * Nghiệp vụ:
-     * - Chỉ được xác nhận đã thanh toán sau khi nhân viên ghi nhận giao dịch thanh toán hợp lệ.
-     * - Lưu msnv xác nhận, ngayThanhToan = Date.now().
-     * - Nếu là 'phiPhat_matSach': cập nhật lượt mượn thành 'daBoiThuong' (hoàn thành nghĩa vụ đền sách).
-     * - Nếu là 'phi_giaHan': gia hạn chu kỳ thẻ (30, 90, 180 ngày tương ứng), mở khóa thẻ nếu đang bị tạm khóa do nợ phí.
      */
     static async xacNhanThanhToan({
         maThanhToan,
@@ -54,7 +43,6 @@ class ThanhToanService {
         thanhToan.trangThai = TRANG_THAI_THANH_TOAN.DA_THANH_TOAN;
         await thanhToan.save();
 
-        // Xử lý theo từng loại thanh toán
         // 1. Phí phạt mất sách -> Hoàn tất nghĩa vụ bồi thường
         if (
             thanhToan.loai === LOAI_THANH_TOAN.PHI_PHAT_MAT_SACH &&
@@ -91,12 +79,8 @@ class ThanhToanService {
                 docGia.chuKyThanhToan = thanhToan.goiGiaHan;
                 docGia.ngayBatDauKyThanhToan = thoiDiemXacNhan;
 
-                // Nếu thẻ đang bị tạm khóa thì mở khóa lại (nếu không có vi phạm khác)
                 if (docGia.trangThai === TRANG_THAI_DOC_GIA.TAM_KHOA) {
                     docGia.trangThai = TRANG_THAI_DOC_GIA.HOAT_DONG;
-                    await TaiKhoan.findByIdAndUpdate(docGia._id, {
-                        trangThai: TRANG_THAI_DOC_GIA.HOAT_DONG,
-                    });
                 }
 
                 await docGia.save();

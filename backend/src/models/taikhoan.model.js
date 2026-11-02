@@ -1,7 +1,6 @@
 const mongoose = require('mongoose');
 const { Schema } = mongoose;
 const { ROLES } = require('../constants/permissions');
-const { TRANG_THAI_DOC_GIA } = require('../constants/business-rules');
 
 const taiKhoanSchema = new Schema(
     {
@@ -28,16 +27,10 @@ const taiKhoanSchema = new Schema(
             default: ROLES.DOCGIA,
             index: true,
         },
-        trangThai: {
-            type: String,
-            enum: Object.values(TRANG_THAI_DOC_GIA),
-            default: TRANG_THAI_DOC_GIA.HOAT_DONG,
-            index: true,
-        },
     },
     {
         timestamps: true,
     },
 );
 
-module.exports = mongoose.model('TaiKhoan', taiKhoanSchema, 'taiKhoans');
+module.exports = mongoose.model('TaiKhoan', taiKhoanSchema, 'taikhoans');

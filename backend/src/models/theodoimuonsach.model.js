@@ -40,11 +40,6 @@ const theoDoiMuonSachSchema = new Schema(
             ref: 'NhanVien',
             default: null,
         },
-        soNgayQuaHan: {
-            type: Number,
-            default: 0,
-            min: 0,
-        },
         tienPhat: {
             type: Number,
             default: 0,
@@ -66,12 +61,11 @@ const theoDoiMuonSachSchema = new Schema(
     },
 );
 
-// Compound index để kiểm tra mượn trùng và truy vấn nhanh lượt mượn của độc giả
 theoDoiMuonSachSchema.index({ docGia: 1, sach: 1, trangThai: 1 });
 theoDoiMuonSachSchema.index({ trangThai: 1, ngayHenTra: 1 });
 
 module.exports = mongoose.model(
     'TheoDoiMuonSach',
     theoDoiMuonSachSchema,
-    'theoDoiMuonSachs',
+    'theodoimuonsachs',
 );

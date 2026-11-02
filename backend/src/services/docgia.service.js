@@ -1,4 +1,4 @@
-const { DocGia, TaiKhoan, TheoDoiMuonSach, ThanhToan } = require('../models');
+const { DocGia, TheoDoiMuonSach, ThanhToan } = require('../models');
 const ApiError = require('../api-error');
 const {
     GOI_GIA_HAN,
@@ -13,10 +13,6 @@ const {
 class DocGiaService {
     /**
      * Tạo yêu cầu gia hạn thẻ độc giả tự do
-     * Gói hạn mức:
-     * - 1_thang (30 ngày): 20.000 VNĐ
-     * - 3_thang (90 ngày): 55.000 VNĐ
-     * - 6_thang (180 ngày): 100.000 VNĐ
      */
     static async taoYeuCauGiaHanThe({ docGiaId, goiGiaHan, phuongThuc }) {
         const docGia = await DocGia.findById(docGiaId);
@@ -52,7 +48,7 @@ class DocGiaService {
             loai: LOAI_THANH_TOAN.PHI_GIA_HAN,
             soTien: thongTinGoi.gia,
             docGia: docGiaId,
-            theoDoiMuonSach: null, // Phí gia hạn không cần liên kết lượt mượn
+            theoDoiMuonSach: null,
             goiGiaHan,
             phuongThuc: phuongThuc || 'tienMat',
             trangThai: TRANG_THAI_THANH_TOAN.CHO_XAC_NHAN,
@@ -65,8 +61,6 @@ class DocGiaService {
 
     /**
      * Tự động quét và xử lý khóa thẻ độc giả tự do nợ phí quá hạn
-     * Quy tắc:
-     * - Độc giả tự do đến chu kỳ thanh toán chưa thanh toán quá 7 ngày sẽ bị khóa thẻ (tamKhoa).
      */
     static async quetVaKhoaTheDocGiaTuDo(thoiDiemHienTai = new Date()) {
         const now = new Date(thoiDiemHienTai);
@@ -80,7 +74,6 @@ class DocGiaService {
 
         for (const docGia of danhSachDocGia) {
             const ngayHetHan = new Date(docGia.ngayHetHanThe);
-            // Quá hạn 7 ngày
             const mocKhoaThe = new Date(
                 ngayHetHan.getTime() +
                     SO_NGAY_AN_HAN_GIA_HAN * 24 * 60 * 60 * 1000,
@@ -89,11 +82,6 @@ class DocGiaService {
             if (now > mocKhoaThe) {
                 docGia.trangThai = TRANG_THAI_DOC_GIA.TAM_KHOA;
                 await docGia.save();
-
-                // Cập nhật trạng thái tài khoản tương ứng
-                await TaiKhoan.findByIdAndUpdate(docGia._id, {
-                    trangThai: TRANG_THAI_DOC_GIA.TAM_KHOA,
-                });
 
                 ketQua.push({
                     docGiaId: docGia._id,
@@ -109,9 +97,6 @@ class DocGiaService {
 
     /**
      * Tự động quét và hủy thẻ sinh viên tốt nghiệp
-     * Quy tắc:
-     * - Sinh viên hết chu kỳ thanh toán / hết hạn thẻ và đã tốt nghiệp sẽ bị hủy thẻ (daHuy).
-     * - Có thể tự tạo thẻ độc giả tự do mới (không có tính năng chuyển đổi loại độc giả).
      */
     static async quetVaHuyTheSinhVienTotNghiep(thoiDiemHienTai = new Date()) {
         const now = new Date(thoiDiemHienTai);

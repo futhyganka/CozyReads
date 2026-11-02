@@ -3,7 +3,7 @@ const { Schema } = mongoose;
 
 const tacGiaSchema = new Schema(
     {
-        maTg: {
+        maTG: {
             type: String,
             required: true,
             unique: true,
@@ -28,4 +28,4 @@ const tacGiaSchema = new Schema(
     },
 );
 
-module.exports = mongoose.model('TacGia', tacGiaSchema, 'tacGias');
+module.exports = mongoose.model('TacGia', tacGiaSchema, 'tacgias');

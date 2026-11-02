@@ -48,8 +48,8 @@ const nhanVienSchema = new Schema(
     },
     {
         timestamps: true,
-        _id: false, // Dùng _id từ TaiKhoan
+        _id: false,
     },
 );
 
-module.exports = mongoose.model('NhanVien', nhanVienSchema, 'nhanViens');
+module.exports = mongoose.model('NhanVien', nhanVienSchema, 'nhanviens');

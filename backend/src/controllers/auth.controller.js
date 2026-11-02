@@ -1,16 +1,67 @@
 const AuthService = require('../services/auth.service');
-const { TaiKhoan } = require('../models');
-const ApiError = require('../api-error');
 
 class AuthController {
+    // [POST] /api/auth/dang-ky-tai-khoan
+    static async dangKyTaiKhoan(req, res, next) {
+        try {
+            const ketQua = await AuthService.dangKyTaiKhoan(req.body);
+            res.status(201).json({
+                success: true,
+                message: 'Đăng ký tài khoản thành công.',
+                data: {
+                    _id: ketQua._id,
+                    email: ketQua.email,
+                    maVaiTro: ketQua.maVaiTro,
+                },
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    // [POST] /api/auth/tao-ho-so-doc-gia
+    static async taoHoSoDocGia(req, res, next) {
+        try {
+            const ketQua = await AuthService.taoHoSoDocGia(req.body);
+            res.status(201).json({
+                success: true,
+                message: 'Tạo hồ sơ độc giả thành công.',
+                data: ketQua,
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    // [POST] /api/auth/tao-ho-so-nhan-vien
+    static async taoHoSoNhanVien(req, res, next) {
+        try {
+            const ketQua = await AuthService.taoHoSoNhanVien(req.body);
+            res.status(201).json({
+                success: true,
+                message: 'Tạo hồ sơ nhân viên thành công.',
+                data: ketQua,
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+
     // [POST] /api/auth/dang-ky-doc-gia
     static async dangKyDocGia(req, res, next) {
         try {
             const ketQua = await AuthService.dangKyDocGia(req.body);
             res.status(201).json({
                 success: true,
-                message: 'Đăng ký tài khoản độc giả thành công.',
-                data: ketQua,
+                message: 'Đăng ký tài khoản và hồ sơ độc giả thành công.',
+                data: {
+                    taiKhoan: {
+                        _id: ketQua.taiKhoan._id,
+                        email: ketQua.taiKhoan.email,
+                        maVaiTro: ketQua.taiKhoan.maVaiTro,
+                    },
+                    docGia: ketQua.docGia,
+                },
             });
         } catch (error) {
             next(error);
@@ -23,8 +74,16 @@ class AuthController {
             const ketQua = await AuthService.dangKyNhanVien(req.body);
             res.status(201).json({
                 success: true,
-                message: 'Đăng ký tài khoản nhân viên thành công.',
-                data: ketQua,
+                message: 'Đăng ký tài khoản và hồ sơ nhân viên thành công.',
+                data: {
+                    taiKhoan: {
+                        _id: ketQua.taiKhoan._id,
+                        email: ketQua.taiKhoan.email,
+                        maVaiTro: ketQua.taiKhoan.maVaiTro,
+                    },
+                    nhanVien: ketQua.nhanVien,
+                    docGia: ketQua.docGia,
+                },
             });
         } catch (error) {
             next(error);
@@ -35,27 +94,11 @@ class AuthController {
     static async dangNhap(req, res, next) {
         try {
             const { email, password } = req.body;
-            const taiKhoan = await TaiKhoan.findOne({
-                email: email.toLowerCase(),
-            });
-            if (!taiKhoan || taiKhoan.password !== password) {
-                throw new ApiError(401, 'Email hoặc mật khẩu không chính xác.');
-            }
-            if (taiKhoan.trangThai === 'tamKhoa') {
-                throw new ApiError(403, 'Tài khoản đang bị tạm khóa.');
-            }
-            if (taiKhoan.trangThai === 'daHuy') {
-                throw new ApiError(403, 'Tài khoản đã bị hủy.');
-            }
-
+            const data = await AuthService.dangNhap({ email, password });
             res.json({
                 success: true,
                 message: 'Đăng nhập thành công.',
-                data: {
-                    _id: taiKhoan._id,
-                    email: taiKhoan.email,
-                    maVaiTro: taiKhoan.maVaiTro,
-                },
+                data,
             });
         } catch (error) {
             next(error);

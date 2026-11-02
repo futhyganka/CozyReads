@@ -1,10 +1,9 @@
-const { DocGia, TheoDoiMuonSach, ThanhToan } = require('../models');
+const { DocGia, TheoDoiMuonSach } = require('../models');
 const {
     DIEM,
     THANG_DIEM_MUON_SACH,
     TRANG_THAI_MUON,
     TRANG_THAI_DOC_GIA,
-    LOAI_THANH_TOAN,
 } = require('../constants/business-rules');
 
 class DiemService {
@@ -29,67 +28,74 @@ class DiemService {
     }
 
     /**
-     * Tự động quét và trừ điểm đối với các lượt mượn đã quá hạn.
-     * Quy tắc:
-     * - Mỗi ngày quá hạn trừ 1 điểm.
-     * - Cập nhật trạng thái lượt mượn sang 'quaHan' nếu đã quá ngayHenTra.
-     * - Tự động cập nhật số ngày quá hạn và đồng bộ trừ điểm độc giả tương ứng theo ngày.
+     * Hàm quét và cập nhật trạng thái mượn sách quá hạn:
+     * Chuyển các lượt mượn có ngayHenTra < thoiDiemHienTai và đang ở trạng thái 'dangMuon' sang 'quaHan'.
+     */
+    static async kiemTraVaCapNhatTrangThaiMuonSach(
+        thoiDiemHienTai = new Date(),
+    ) {
+        const now = new Date(thoiDiemHienTai);
+        const danhSachCanCapNhat = await TheoDoiMuonSach.find({
+            trangThai: TRANG_THAI_MUON.DANG_MUON,
+            ngayHenTra: { $lt: now },
+        });
+
+        for (const item of danhSachCanCapNhat) {
+            item.trangThai = TRANG_THAI_MUON.QUA_HAN;
+            await item.save();
+        }
+
+        return danhSachCanCapNhat.length;
+    }
+
+    /**
+     * Tự động quét và trừ điểm đối với các độc giả đang có sách quá hạn.
+     * Quy tắc cập nhật theo ngày:
+     * - Không cần lưu soNgayQuaHan trong DB.
+     * - Hàm đếm số lượng sách có trangThai = 'quaHan' của độc giả đó.
+     * - Cứ mỗi cuốn sách quá hạn thì độc giả bị trừ 1 điểm trong ngày đó (hoặc trừ theo số lượng sách quá hạn).
      */
     static async quetVaTruDiemQuaHan(thoiDiemHienTai = new Date()) {
         const now = new Date(thoiDiemHienTai);
 
-        // Tìm các lượt mượn chưa trả và đã quá hạn
-        const luotMuonQuaHan = await TheoDoiMuonSach.find({
-            trangThai: {
-                $in: [TRANG_THAI_MUON.DANG_MUON, TRANG_THAI_MUON.QUA_HAN],
-            },
-            ngayHenTra: { $lt: now },
+        // Lấy danh sách độc giả đang có sách quá hạn
+        const dsDocGiaCoSachQuaHan = await TheoDoiMuonSach.distinct('docGia', {
+            trangThai: TRANG_THAI_MUON.QUA_HAN,
         });
 
         const ketQua = [];
 
-        for (const item of luotMuonQuaHan) {
-            // Tính số ngày quá hạn (làm tròn lên)
-            const diffTime =
-                now.getTime() - new Date(item.ngayHenTra).getTime();
-            const soNgayQuaHanMoi = Math.max(
-                1,
-                Math.ceil(diffTime / (1000 * 60 * 60 * 24)),
-            );
+        for (const docGiaId of dsDocGiaCoSachQuaHan) {
+            const docGia = await DocGia.findById(docGiaId);
+            if (!docGia) continue;
 
-            const soNgayChenhLech = soNgayQuaHanMoi - (item.soNgayQuaHan || 0);
+            // Đếm số lượng sách đang bị quá hạn của độc giả này
+            const soLuongSachQuaHan = await TheoDoiMuonSach.countDocuments({
+                docGia: docGiaId,
+                trangThai: TRANG_THAI_MUON.QUA_HAN,
+            });
 
-            if (soNgayChenhLech > 0) {
-                item.soNgayQuaHan = soNgayQuaHanMoi;
-                item.trangThai = TRANG_THAI_MUON.QUA_HAN;
-                item.tienPhat = soNgayQuaHanMoi * 5000; // Phí phạt quá hạn 5.000đ/ngày
-                await item.save();
+            if (soLuongSachQuaHan > 0) {
+                const diemTru =
+                    soLuongSachQuaHan * DIEM.DIEM_TRU_QUA_HAN_MOI_NGAY;
+                docGia.diemDocGia = Math.max(
+                    DIEM.TOI_THIEU,
+                    docGia.diemDocGia - diemTru,
+                );
+                // Reset mốc tính điểm thưởng vì đang vi phạm
+                docGia.ngayCapNhatDiemKhongViPham = now;
+                await docGia.save();
 
-                // Trừ điểm độc giả tương ứng với số ngày quá hạn mới phát sinh
-                const docGia = await DocGia.findById(item.docGia);
-                if (docGia) {
-                    const diemTru =
-                        soNgayChenhLech * DIEM.DIEM_TRU_QUA_HAN_MOI_NGAY;
-                    docGia.diemDocGia = Math.max(
-                        DIEM.TOI_THIEU,
-                        docGia.diemDocGia - diemTru,
-                    );
-                    // Reset mốc tính điểm thưởng vì đã vi phạm
-                    docGia.ngayCapNhatDiemKhongViPham = now;
-                    await docGia.save();
+                // Kiểm tra nếu điểm giảm làm số sách đang mượn vượt giới hạn mới
+                await this.kiemTraVaXuLyVuotHanMucMuon(docGia._id);
 
-                    // Kiểm tra nếu điểm giảm làm số sách đang mượn vượt giới hạn mới
-                    await this.kiemTraVaXuLyVuotHanMucMuon(docGia._id);
-
-                    ketQua.push({
-                        docGiaId: docGia._id,
-                        maDocGia: docGia.maDocGia,
-                        luotMuonId: item._id,
-                        soNgayQuaHan: soNgayQuaHanMoi,
-                        diemTru,
-                        diemConLai: docGia.diemDocGia,
-                    });
-                }
+                ketQua.push({
+                    docGiaId: docGia._id,
+                    maDocGia: docGia.maDocGia,
+                    soLuongSachQuaHan,
+                    diemTru,
+                    diemConLai: docGia.diemDocGia,
+                });
             }
         }
 
@@ -123,7 +129,6 @@ class DiemService {
             });
 
             if (coViPham) {
-                // Đang có vi phạm, dời mốc tính điểm thưởng sang hiện tại
                 docGia.ngayCapNhatDiemKhongViPham = now;
                 await docGia.save();
                 continue;
@@ -144,7 +149,6 @@ class DiemService {
                     docGia.diemDocGia + diemCong,
                 );
 
-                // Cập nhật lại mốc thời gian tịnh tiến theo số chu kỳ đã cộng
                 const soMiligiayTien =
                     soChuKy * DIEM.SO_NGAY_TICH_DIEM * 24 * 60 * 60 * 1000;
                 docGia.ngayCapNhatDiemKhongViPham = new Date(
@@ -167,11 +171,6 @@ class DiemService {
 
     /**
      * Kiểm tra khi điểm độc giả giảm xuống dưới số lượng sách đang mượn.
-     * Quy tắc:
-     * - Sách đang giữ bao gồm: dangMuon, quaHan, daMat (mất chưa đền).
-     * - Nếu số lượng sách đang giữ > số sách tối đa theo điểm mới:
-     *   Độc giả cần trả bớt sách để về đúng hạn mức.
-     *   Nếu không trả / đã vi phạm nghiêm trọng thì tài khoản chuyển sang tạm khóa (tamKhoa).
      */
     static async kiemTraVaXuLyVuotHanMucMuon(
         docGiaId,
@@ -182,7 +181,6 @@ class DiemService {
 
         const soSachToiDa = this.tinhSoSachToiDa(docGia.diemDocGia);
 
-        // Đếm số sách đang giữ (kể cả sách mất chưa đền)
         const soSachDangGiu = await TheoDoiMuonSach.countDocuments({
             docGia: docGiaId,
             trangThai: {

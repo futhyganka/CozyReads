@@ -25,6 +25,4 @@ function checkPermission(requiredPermission) {
     };
 }
 
-module.exports = {
-    checkPermission,
-};
+module.exports = { checkPermission };

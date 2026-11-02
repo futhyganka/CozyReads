@@ -1,4 +1,4 @@
-const { Sach, TacGia, DanhMuc, NhaXuatBan } = require('../models');
+const { Sach } = require('../models');
 const ApiError = require('../api-error');
 
 class SachController {
@@ -11,16 +11,16 @@ class SachController {
             if (search) {
                 filter.$text = { $search: search };
             }
-            if (dm) filter.maDm = dm;
-            if (tg) filter.maTg = tg;
-            if (nxb) filter.maNxb = nxb;
+            if (dm) filter.maDM = dm;
+            if (tg) filter.maTG = tg;
+            if (nxb) filter.maNXB = nxb;
 
             const skip = (Number(page) - 1) * Number(limit);
             const [sachs, total] = await Promise.all([
                 Sach.find(filter)
-                    .populate('maNxb', 'tenNxb maNxb')
-                    .populate('maTg', 'tenTg maTg')
-                    .populate('maDm', 'tenDm maDm')
+                    .populate('maNXB', 'tenNxb maNXB')
+                    .populate('maTG', 'tenTg maTG')
+                    .populate('maDM', 'tenDm maDM')
                     .skip(skip)
                     .limit(Number(limit))
                     .sort({ createdAt: -1 }),
@@ -43,9 +43,9 @@ class SachController {
     static async getChiTietSach(req, res, next) {
         try {
             const sach = await Sach.findById(req.params.id)
-                .populate('maNxb')
-                .populate('maTg')
-                .populate('maDm');
+                .populate('maNXB')
+                .populate('maTG')
+                .populate('maDM');
             if (!sach) {
                 throw new ApiError(404, 'Không tìm thấy sách.');
             }

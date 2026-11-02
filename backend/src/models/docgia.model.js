@@ -104,8 +104,8 @@ const docGiaSchema = new Schema(
     },
     {
         timestamps: true,
-        _id: false, // Dùng _id từ TaiKhoan
+        _id: false,
     },
 );
 
-module.exports = mongoose.model('DocGia', docGiaSchema, 'docGias');
+module.exports = mongoose.model('DocGia', docGiaSchema, 'docgias');

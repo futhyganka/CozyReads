@@ -80,4 +80,4 @@ const thanhToanSchema = new Schema(
     },
 );
 
-module.exports = mongoose.model('ThanhToan', thanhToanSchema, 'thanhToans');
+module.exports = mongoose.model('ThanhToan', thanhToanSchema, 'thanhtoans');
