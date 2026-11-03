@@ -45,7 +45,7 @@ async function testTheDocGia() {
     assert.strictEqual(biLoiKhongSoDt, true);
 
     // Case 3: Tạo yêu cầu gia hạn thẻ
-    console.log('Case 3: Tạo yêu cầu gia hạn thẻ độc giả tự do');
+    console.log('Case 3: Tạo khoản thanh toán gia hạn thẻ độc giả tự do');
     const { docGia } = await AuthService.dangKyDocGia({
         email: 'dg_tudo@test.com',
         password: 'password123',
@@ -55,7 +55,7 @@ async function testTheDocGia() {
         loaiDocGia: LOAI_DOC_GIA.DOCGIA_TUDO,
     });
 
-    const yeuCauGiaHan = await DocGiaService.taoYeuCauGiaHanThe({
+    const yeuCauGiaHan = await DocGiaService.taoKhoanThanhToanGiaHan({
         docGiaId: docGia._id,
         goiGiaHan: '3_thang',
         phuongThuc: 'chuyenKhoan',
@@ -101,6 +101,28 @@ async function testTheDocGia() {
     const svSauHuy = await DocGia.findById(sv._id);
     assert.strictEqual(svSauHuy.trangThai, TRANG_THAI_DOC_GIA.DA_HUY);
     assert.strictEqual(svSauHuy.trangThaiGiaHan, TRANG_THAI_GIA_HAN.DA_HUY);
+
+    // Case 6: Tự động tạo thanh toán gia hạn cho độc giả tự do và tự động gia hạn 6 tháng miễn phí cho độc giả khác
+    console.log('Case 6: Tự động tạo thanh toán cho độc giả tự do & gia hạn miễn phí 6 tháng cho độc giả khác');
+    const { docGia: gv } = await AuthService.dangKyDocGia({
+        email: 'giangvien@test.com',
+        password: 'password123',
+        hoLot: 'Trần',
+        ten: 'Hùng',
+        dienThoai: '0955555555',
+        loaiDocGia: LOAI_DOC_GIA.GIANGVIEN,
+    });
+    gv.ngayHetHanThe = new Date('2026-02-01T00:00:00Z');
+    gv.trangThaiGiaHan = TRANG_THAI_GIA_HAN.GIA_HAN;
+    await gv.save();
+
+    const ketQuaQuetGiaHan = await DocGiaService.quetVaXuLyGiaHanThe(
+        new Date('2026-02-05T00:00:00Z'),
+    );
+    // gv phải được tự động gia hạn 180 ngày (6 tháng miễn phí)
+    const gvUpdated = await DocGia.findById(gv._id);
+    assert(gvUpdated.ngayHetHanThe > new Date('2026-02-05T00:00:00Z'));
+    assert.strictEqual(gvUpdated.chuKyThanhToan, '6_thang_mien_phi');
 
     console.log('✅ tests/the-docgia.test.js PASSED ALL CHECKS!');
 }

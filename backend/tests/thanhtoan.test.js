@@ -110,7 +110,7 @@ async function testThanhToan() {
     docGia.trangThai = TRANG_THAI_DOC_GIA.TAM_KHOA;
     await docGia.save();
 
-    const yeuCauGiaHan = await DocGiaService.taoYeuCauGiaHanThe({
+    const yeuCauGiaHan = await DocGiaService.taoKhoanThanhToanGiaHan({
         docGiaId: docGia._id,
         goiGiaHan: '1_thang',
     });

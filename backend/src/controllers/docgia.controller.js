@@ -27,17 +27,17 @@ class DocGiaController {
     }
 
     // [POST] /api/doc-gia/:id/gia-han
-    static async yeuCauGiaHan(req, res, next) {
+    static async taoKhoanThanhToanGiaHan(req, res, next) {
         try {
             const { goiGiaHan, phuongThuc } = req.body;
-            const thanhToan = await DocGiaService.taoYeuCauGiaHanThe({
+            const thanhToan = await DocGiaService.taoKhoanThanhToanGiaHan({
                 docGiaId: req.params.id,
                 goiGiaHan,
                 phuongThuc,
             });
             res.status(201).json({
                 success: true,
-                message: 'Tạo yêu cầu gia hạn thẻ thành công.',
+                message: 'Tạo khoản thanh toán gia hạn thẻ thành công.',
                 data: thanhToan,
             });
         } catch (error) {

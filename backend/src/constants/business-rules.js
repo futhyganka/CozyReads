@@ -28,7 +28,7 @@ const BUSINESS_RULES = {
         THOI_HAN_MUON_MAC_DINH_NGAY: 14, // 14 ngày
     },
 
-    // Gói chu kỳ thanh toán & giá gia hạn cho độc giả tự do
+    // Gói chu kỳ thanh toán & giá gia hạn
     // 1 tháng = 30 ngày, 3 tháng = 90 ngày, 6 tháng = 180 ngày
     GOI_GIA_HAN: {
         '1_thang': {
@@ -45,6 +45,11 @@ const BUSINESS_RULES = {
             soNgay: 180,
             gia: 100000,
             tenGoi: 'Gói 6 tháng (180 ngày)',
+        },
+        '6_thang_mien_phi': {
+            soNgay: 180,
+            gia: 0,
+            tenGoi: 'Gói 6 tháng miễn phí (Sinh viên, Giảng viên, Nhân viên)',
         },
     },
 

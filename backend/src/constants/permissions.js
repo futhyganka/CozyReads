@@ -1,15 +1,19 @@
 /**
  * Bảng phân quyền (Permissions Matrix) cho các vai trò trong CozyReads
  *
- * Permission       Mô tả                           Guest   Reader  Librarian   Admin
- * books:read       Xem danh sách / chi tiết sách   ✅      ✅      ✅          ✅
- * books:search     Tìm kiếm sách                   ✅      ✅      ✅          ✅
- * books:write      Thêm/sửa/xóa sách               ❌      ❌      ✅          ✅
- * borrows:create   Tạo phiếu mượn                  ❌      ✅      ✅          ✅
- * borrows:read-own Xem lịch sử mượn của mình       ❌      ✅      ✅          ✅
- * borrows:manage   Xem + xử lý tất cả phiếu mượn   ❌      ❌      ✅          ✅
- * users:manage     Quản lý tài khoản               ❌      ❌      ❌          ✅
- * admin:manage     Toàn quyền admin                ❌      ❌      ❌          ✅
+ * Permission           Mô tả                               Guest   Reader  Librarian   Admin
+ * books:read           Xem danh sách / chi tiết sách       ✅      ✅      ✅          ✅
+ * books:search         Tìm kiếm sách                       ✅      ✅      ✅          ✅
+ * books:write          Thêm/sửa/xóa sách                   ❌      ❌      ✅          ✅
+ * borrows:create       Tạo phiếu mượn                      ❌      ✅      ✅          ✅
+ * borrows:read-own     Xem lịch sử mượn của mình           ❌      ✅      ✅          ✅
+ * borrows:manage       Xem + xử lý tất cả phiếu mượn       ❌      ❌      ✅          ✅
+ * payments:create      Tạo yêu cầu thanh toán              ❌      ✅      ✅          ✅
+ * payments:read-own    Xem lịch sử thanh toán của mình     ❌      ✅      ✅          ✅
+ * payments:read        Xem tất cả khoản thanh toán         ❌      ❌      ✅          ✅
+ * payments:manage      Xác nhận và xử lý thanh toán        ❌      ❌      ✅          ✅
+ * users:manage         Quản lý tài khoản                   ❌      ❌      ❌          ✅
+ * admin:manage         Toàn quyền admin                    ❌      ❌      ❌          ✅
  */
 
 const PERMISSIONS = {
@@ -19,6 +23,10 @@ const PERMISSIONS = {
     BORROWS_CREATE: 'borrows:create',
     BORROWS_READ_OWN: 'borrows:read-own',
     BORROWS_MANAGE: 'borrows:manage',
+    PAYMENTS_CREATE: 'payments:create',
+    PAYMENTS_READ_OWN: 'payments:read-own',
+    PAYMENTS_READ: 'payments:read',
+    PAYMENTS_MANAGE: 'payments:manage',
     USERS_MANAGE: 'users:manage',
     ADMIN_MANAGE: 'admin:manage',
 };
@@ -37,6 +45,8 @@ const ROLE_PERMISSIONS = {
         PERMISSIONS.BOOKS_SEARCH,
         PERMISSIONS.BORROWS_CREATE,
         PERMISSIONS.BORROWS_READ_OWN,
+        PERMISSIONS.PAYMENTS_CREATE,
+        PERMISSIONS.PAYMENTS_READ_OWN,
     ],
     [ROLES.NHANVIEN]: [
         PERMISSIONS.BOOKS_READ,
@@ -45,6 +55,10 @@ const ROLE_PERMISSIONS = {
         PERMISSIONS.BORROWS_CREATE,
         PERMISSIONS.BORROWS_READ_OWN,
         PERMISSIONS.BORROWS_MANAGE,
+        PERMISSIONS.PAYMENTS_CREATE,
+        PERMISSIONS.PAYMENTS_READ_OWN,
+        PERMISSIONS.PAYMENTS_READ,
+        PERMISSIONS.PAYMENTS_MANAGE,
     ],
     [ROLES.QUANTRIVIEN]: [
         PERMISSIONS.BOOKS_READ,
@@ -53,6 +67,10 @@ const ROLE_PERMISSIONS = {
         PERMISSIONS.BORROWS_CREATE,
         PERMISSIONS.BORROWS_READ_OWN,
         PERMISSIONS.BORROWS_MANAGE,
+        PERMISSIONS.PAYMENTS_CREATE,
+        PERMISSIONS.PAYMENTS_READ_OWN,
+        PERMISSIONS.PAYMENTS_READ,
+        PERMISSIONS.PAYMENTS_MANAGE,
         PERMISSIONS.USERS_MANAGE,
         PERMISSIONS.ADMIN_MANAGE,
     ],

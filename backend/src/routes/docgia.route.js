@@ -12,7 +12,7 @@ router.get(
 router.post(
     '/:id/gia-han',
     checkPermission(PERMISSIONS.BORROWS_READ_OWN),
-    DocGiaController.yeuCauGiaHan,
+    DocGiaController.taoKhoanThanhToanGiaHan,
 );
 
 module.exports = router;
