@@ -10,11 +10,6 @@ const {
 
 const docGiaSchema = new Schema(
     {
-        _id: {
-            type: Schema.Types.ObjectId,
-            ref: 'TaiKhoan',
-            required: true,
-        },
         maDocGia: {
             type: String,
             required: true,
@@ -53,11 +48,45 @@ const docGiaSchema = new Schema(
             trim: true,
             index: true,
         },
-        loaiDocGia: {
+        email: {
             type: String,
-            enum: Object.values(LOAI_DOC_GIA),
-            required: true,
-            default: LOAI_DOC_GIA.DOCGIA_TUDO,
+            sparse: true,
+            unique: true,
+            lowercase: true,
+            trim: true,
+            index: true,
+        },
+        password: {
+            type: String,
+            select: false,
+        },
+        avatar: {
+            type: String,
+            default: '',
+        },
+        chuKyThanhToan: {
+            type: String,
+            enum: Object.keys(GOI_GIA_HAN),
+            default: '1_thang',
+        },
+        trangThaiGiaHan: {
+            type: String,
+            enum: Object.values(TRANG_THAI_GIA_HAN),
+            default: TRANG_THAI_GIA_HAN.GIA_HAN,
+            index: true,
+        },
+        ngayBatDauKyThanhToan: {
+            type: Date,
+            default: Date.now,
+        },
+        ngayHetHanThe: {
+            type: Date,
+            index: true,
+        },
+        trangThaiTaiKhoan: {
+            type: String,
+            enum: Object.values(TRANG_THAI_DOC_GIA),
+            default: TRANG_THAI_DOC_GIA.HOAT_DONG,
             index: true,
         },
         diemDocGia: {
@@ -68,34 +97,16 @@ const docGiaSchema = new Schema(
             max: DIEM.TOI_DA,
             index: true,
         },
+        loaiDocGia: {
+            type: String,
+            enum: Object.values(LOAI_DOC_GIA),
+            required: true,
+            default: LOAI_DOC_GIA.DOCGIA_TUDO,
+            index: true,
+        },
         ngayCapNhatDiemKhongViPham: {
             type: Date,
             default: Date.now,
-        },
-        chuKyThanhToan: {
-            type: String,
-            enum: Object.keys(GOI_GIA_HAN),
-            default: '1_thang',
-        },
-        ngayBatDauKyThanhToan: {
-            type: Date,
-            default: Date.now,
-        },
-        ngayHetHanThe: {
-            type: Date,
-            index: true,
-        },
-        trangThaiGiaHan: {
-            type: String,
-            enum: Object.values(TRANG_THAI_GIA_HAN),
-            default: TRANG_THAI_GIA_HAN.GIA_HAN,
-            index: true,
-        },
-        trangThai: {
-            type: String,
-            enum: Object.values(TRANG_THAI_DOC_GIA),
-            default: TRANG_THAI_DOC_GIA.HOAT_DONG,
-            index: true,
         },
         daTotNghiep: {
             type: Boolean,
@@ -104,8 +115,28 @@ const docGiaSchema = new Schema(
     },
     {
         timestamps: true,
-        _id: false,
     },
 );
+
+// Middleware pre findOneAndUpdate để map trangThai -> trangThaiTaiKhoan
+docGiaSchema.pre('findOneAndUpdate', function () {
+    const update = this.getUpdate();
+    if (update && update.trangThai !== undefined) {
+        update.trangThaiTaiKhoan = update.trangThai;
+    }
+    if (update && update.$set && update.$set.trangThai !== undefined) {
+        update.$set.trangThaiTaiKhoan = update.$set.trangThai;
+    }
+});
+docGiaSchema.virtual('trangThai')
+    .get(function () {
+        return this.trangThaiTaiKhoan;
+    })
+    .set(function (val) {
+        this.trangThaiTaiKhoan = val;
+    });
+
+docGiaSchema.set('toJSON', { virtuals: true });
+docGiaSchema.set('toObject', { virtuals: true });
 
 module.exports = mongoose.model('DocGia', docGiaSchema, 'docgias');

@@ -1,91 +1,62 @@
-const { Sach } = require('../models');
-const ApiError = require('../api-error');
+const SachService = require('../services/sach.service');
 
 class SachController {
-    // [GET] /api/sach - Tra cứu & lọc sách
+    // [GET] /api/sachs hoặc /api/sach - Tra cứu, lọc, phân trang
     static async getDanhSachSach(req, res, next) {
         try {
-            const { search, dm, tg, nxb, page = 1, limit = 10 } = req.query;
-            const filter = {};
-
-            if (search) {
-                filter.$text = { $search: search };
-            }
-            if (dm) filter.maDM = dm;
-            if (tg) filter.maTG = tg;
-            if (nxb) filter.maNXB = nxb;
-
-            const skip = (Number(page) - 1) * Number(limit);
-            const [sachs, total] = await Promise.all([
-                Sach.find(filter)
-                    .populate('maNXB', 'tenNxb maNXB')
-                    .populate('maTG', 'tenTg maTG')
-                    .populate('maDM', 'tenDm maDM')
-                    .skip(skip)
-                    .limit(Number(limit))
-                    .sort({ createdAt: -1 }),
-                Sach.countDocuments(filter),
-            ]);
-
-            res.json({
-                success: true,
-                total,
-                page: Number(page),
-                totalPages: Math.ceil(total / Number(limit)),
-                data: sachs,
-            });
+            const ketQua = await SachService.getDanhSachSach(req.query);
+            res.json({ success: true, ...ketQua });
         } catch (error) {
             next(error);
         }
     }
 
-    // [GET] /api/sach/:id
+    // [GET] /api/sachs/:id
     static async getChiTietSach(req, res, next) {
         try {
-            const sach = await Sach.findById(req.params.id)
-                .populate('maNXB')
-                .populate('maTG')
-                .populate('maDM');
-            if (!sach) {
-                throw new ApiError(404, 'Không tìm thấy sách.');
-            }
+            const sach = await SachService.getChiTietSach(req.params.id);
             res.json({ success: true, data: sach });
         } catch (error) {
             next(error);
         }
     }
 
-    // [POST] /api/sach
+    // [POST] /api/sachs
     static async themSach(req, res, next) {
         try {
-            const sach = new Sach(req.body);
-            await sach.save();
-            res.status(201).json({ success: true, data: sach });
+            const sach = await SachService.themSach(req.body);
+            res.status(201).json({
+                success: true,
+                message: 'Thêm sách mới thành công.',
+                data: sach,
+            });
         } catch (error) {
             next(error);
         }
     }
 
-    // [PUT] /api/sach/:id
+    // [PUT] /api/sachs/:id
     static async capNhatSach(req, res, next) {
         try {
-            const sach = await Sach.findByIdAndUpdate(req.params.id, req.body, {
-                new: true,
-                runValidators: true,
+            const sach = await SachService.capNhatSach(
+                req.params.id,
+                req.body,
+            );
+            res.json({
+                success: true,
+                message: 'Cập nhật sách thành công.',
+                data: sach,
             });
-            if (!sach) throw new ApiError(404, 'Không tìm thấy sách.');
-            res.json({ success: true, data: sach });
         } catch (error) {
             next(error);
         }
     }
 
-    // [DELETE] /api/sach/:id
+    // [DELETE] /api/sachs/:id
     static async xoaSach(req, res, next) {
         try {
-            const sach = await Sach.findByIdAndDelete(req.params.id);
-            if (!sach) throw new ApiError(404, 'Không tìm thấy sách.');
-            res.json({ success: true, message: 'Đã xóa sách thành công.' });
+            const ketQua = await SachService.xoaSach(req.params.id);
+            res.json({ success: true, ...ketQua });
         } catch (error) {
             next(error);
         }

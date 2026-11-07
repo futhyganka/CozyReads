@@ -1,31 +1,17 @@
 const express = require('express');
 const router = express.Router();
 const AuthController = require('../controllers/auth.controller');
-const { checkPermission } = require('../middlewares/auth.middleware');
-const { PERMISSIONS } = require('../constants/permissions');
 
-// Đăng ký tài khoản chung
-router.post('/dang-ky-tai-khoan', AuthController.dangKyTaiKhoan);
-
-// Tạo hồ sơ độc giả
-router.post('/tao-ho-so-doc-gia', AuthController.taoHoSoDocGia);
-
-// Đăng ký độc giả trọn gói
+// Đăng ký độc giả trực tuyến
 router.post('/dang-ky-doc-gia', AuthController.dangKyDocGia);
 
-// Đăng nhập
-router.post('/dang-nhap', AuthController.dangNhap);
+// Đăng nhập độc giả
+router.post('/dang-nhap-doc-gia', AuthController.dangNhapDocGia);
 
-// Tạo hồ sơ nhân viên / đăng ký nhân viên (chỉ Admin)
-router.post(
-    '/tao-ho-so-nhan-vien',
-    checkPermission(PERMISSIONS.USERS_MANAGE),
-    AuthController.taoHoSoNhanVien,
-);
-router.post(
-    '/dang-ky-nhan-vien',
-    checkPermission(PERMISSIONS.USERS_MANAGE),
-    AuthController.dangKyNhanVien,
-);
+// Đăng nhập nhân viên
+router.post('/dang-nhap-nhan-vien', AuthController.dangNhapNhanVien);
+
+// Đăng nhập chung
+router.post('/dang-nhap', AuthController.dangNhap);
 
 module.exports = router;

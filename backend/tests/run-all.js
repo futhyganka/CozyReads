@@ -4,10 +4,13 @@ const testDiemTuDong = require('./diem-tudong.test');
 const testTheDocGia = require('./the-docgia.test');
 const testThanhToan = require('./thanhtoan.test');
 const testPhanQuyen = require('./phanquyen.test');
+const testCRUDToanBo = require('./crud-toan-bo.test');
+const testRaSoatNghiepVu = require('./ra-soat-nghiep-vu.test');
+const testKiemTraCuoiCung = require('./kiem-tra-cuoi-cung.test');
 
 async function runAllTests() {
     console.log('====================================================');
-    console.log('  COZYREADS BUSINESS LOGIC TEST SUITE (TOÀN BỘ)     ');
+    console.log('  COZYREADS BUSINESS LOGIC & CRUD TEST SUITE        ');
     console.log('====================================================');
     const start = Date.now();
 
@@ -17,11 +20,14 @@ async function runAllTests() {
         await testDiemTuDong();
         await testTheDocGia();
         await testThanhToan();
+        await testCRUDToanBo();
+        await testRaSoatNghiepVu();
+        await testKiemTraCuoiCung();
 
         const duration = ((Date.now() - start) / 1000).toFixed(2);
         console.log('\n====================================================');
         console.log(
-            `🎉 TẤT CẢ 5 NHÓM NGHIỆP VỤ ĐÃ VƯỢT QUA TEST THÀNH CÔNG (${duration}s)!`,
+            `🎉 TẤT CẢ 8 BỘ TEST (TOÀN BỘ NGHIỆP VỤ & RÀ SOÁT CUỐI CÙNG) ĐÃ VƯỢT QUA TEST THÀNH CÔNG (${duration}s)!`,
         );
         console.log('====================================================');
     } catch (error) {

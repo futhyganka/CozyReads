@@ -1,13 +1,15 @@
 const mongoose = require('mongoose');
 const config = require('../src/config');
 const {
-    TaiKhoan,
+    DocGia,
+    NhanVien,
     NhaXuatBan,
     TacGia,
     DanhMuc,
     Sach,
 } = require('../src/models');
 const AuthService = require('../src/services/auth.service');
+const NhanVienService = require('../src/services/nhanvien.service');
 const {
     LOAI_DOC_GIA,
     CHUC_VU_NHAN_VIEN,
@@ -19,12 +21,8 @@ async function seedData() {
         await mongoose.connect(config.db.url);
         console.log('Kết nối thành công!');
 
-        // 1. Khởi tạo vai trò
-        console.log('1. Khởi tạo vai trò & quyền hạn (VaiTro)...');
-        await AuthService.khoiTaoVaiTroMacDinh();
-
-        // 2. Nhà xuất bản
-        console.log('2. Khởi tạo Nhà xuất bản...');
+        // 1. Nhà xuất bản
+        console.log('1. Khởi tạo Nhà xuất bản...');
         const nxbTre = await NhaXuatBan.findOneAndUpdate(
             { maNXB: 'NXB_TRE' },
             {
@@ -44,8 +42,8 @@ async function seedData() {
             { upsert: true, returnDocument: 'after' },
         );
 
-        // 3. Tác giả
-        console.log('3. Khởi tạo Tác giả...');
+        // 2. Tác giả
+        console.log('2. Khởi tạo Tác giả...');
         const tgNguyenNhatAnh = await TacGia.findOneAndUpdate(
             { maTG: 'TG_NNA' },
             { maTG: 'TG_NNA', tenTg: 'Nguyễn Nhật Ánh', quocTich: 'Việt Nam' },
@@ -57,8 +55,8 @@ async function seedData() {
             { upsert: true, returnDocument: 'after' },
         );
 
-        // 4. Danh mục
-        console.log('4. Khởi tạo Danh mục...');
+        // 3. Danh mục
+        console.log('3. Khởi tạo Danh mục...');
         const dmVanHoc = await DanhMuc.findOneAndUpdate(
             { maDM: 'DM_VANHOC' },
             {
@@ -78,8 +76,8 @@ async function seedData() {
             { upsert: true, returnDocument: 'after' },
         );
 
-        // 5. Sách
-        console.log('5. Khởi tạo Đầu sách...');
+        // 4. Sách
+        console.log('4. Khởi tạo Đầu sách...');
         await Sach.findOneAndUpdate(
             { maSach: 'MS_KVH_01' },
             {
@@ -90,8 +88,8 @@ async function seedData() {
                 soQuyen: 10,
                 namXuatBan: 2022,
                 maNXB: nxbTre._id,
-                maTG: [tgNguyenNhatAnh._id],
-                maDM: [dmVanHoc._id],
+                tacGia: tgNguyenNhatAnh._id,
+                danhMuc: dmVanHoc._id,
                 ngonNgu: 'Tiếng Việt',
             },
             { upsert: true, returnDocument: 'after' },
@@ -107,46 +105,41 @@ async function seedData() {
                 soQuyen: 8,
                 namXuatBan: 2021,
                 maNXB: nxbKimDong._id,
-                maTG: [tgToHoai._id],
-                maDM: [dmVanHoc._id],
+                tacGia: tgToHoai._id,
+                danhMuc: dmVanHoc._id,
                 ngonNgu: 'Tiếng Việt',
             },
             { upsert: true, returnDocument: 'after' },
         );
 
-        // 6. Tài khoản Admin & Nhân viên mẫu
-        console.log('6. Khởi tạo Tài khoản Quản trị viên & Nhân viên...');
-        const adminEmail = 'admin@cozyreads.vn';
-        const adminExists = await TaiKhoan.findOne({ email: adminEmail });
+        // 5. Nhân viên Quản trị & Thủ thư
+        console.log('5. Khởi tạo Nhân viên Quản trị & Thủ thư...');
+        const adminExists = await NhanVien.findOne({ chucVu: CHUC_VU_NHAN_VIEN.ADMIN });
         if (!adminExists) {
-            await AuthService.dangKyNhanVien({
-                email: adminEmail,
+            await NhanVienService.taoNhanVien({
+                hoTenNv: 'Quản Trị Viên Hệ Thống',
                 password: 'adminPassword123',
-                hoTen: 'Quản Trị Viên Hệ Thống',
                 chucVu: CHUC_VU_NHAN_VIEN.ADMIN,
-                dienThoai: '0988888888',
-                isAdmin: true,
+                soDienThoai: '0988888888',
+                luong: 20000000,
             });
         }
 
-        const nvEmail = 'thuthu@cozyreads.vn';
-        const nvExists = await TaiKhoan.findOne({ email: nvEmail });
-        if (!nvExists) {
-            await AuthService.dangKyNhanVien({
-                email: nvEmail,
+        const staffExists = await NhanVien.findOne({ chucVu: CHUC_VU_NHAN_VIEN.NHAN_VIEN });
+        if (!staffExists) {
+            await NhanVienService.taoNhanVien({
+                hoTenNv: 'Nguyễn Thị Thủ Thư',
                 password: 'staffPassword123',
-                hoTen: 'Nguyễn Thị Thủ Thư',
                 chucVu: CHUC_VU_NHAN_VIEN.NHAN_VIEN,
-                dienThoai: '0977777777',
-                isAdmin: false,
-                taoHoSoDocGia: true, // Nhân viên này có thêm hồ sơ độc giả để mượn sách
+                soDienThoai: '0977777777',
+                luong: 12000000,
             });
         }
 
-        // 7. Độc giả mẫu
-        console.log('7. Khởi tạo Độc giả mẫu...');
+        // 6. Độc giả mẫu
+        console.log('6. Khởi tạo Độc giả mẫu...');
         const dgEmail = 'docgia.an@gmail.com';
-        const dgExists = await TaiKhoan.findOne({ email: dgEmail });
+        const dgExists = await DocGia.findOne({ email: dgEmail });
         if (!dgExists) {
             await AuthService.dangKyDocGia({
                 email: dgEmail,
@@ -158,7 +151,7 @@ async function seedData() {
             });
         }
 
-        console.log('✨ Khởi tạo dữ liệu mẫu CozyReads thành công!');
+        console.log('✨ Khởi tạo dữ liệu mẫu CozyReads thành công theo cấu trúc 8 thực thể mới!');
         process.exit(0);
     } catch (error) {
         console.error('Lỗi khi seed data:', error);

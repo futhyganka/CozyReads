@@ -1,5 +1,7 @@
 const bcrypt = require('bcryptjs');
-const { TaiKhoan, DocGia, NhanVien, VaiTro } = require('../models');
+const jwt = require('jsonwebtoken');
+const config = require('../config');
+const { DocGia, NhanVien } = require('../models');
 const ApiError = require('../api-error');
 const { ROLES, ROLE_PERMISSIONS } = require('../constants/permissions');
 const {
@@ -11,85 +13,84 @@ const {
 
 class AuthService {
     /**
-     * Khởi tạo dữ liệu vai trò ban đầu theo Bảng Permissions
+     * Tương thích với các bản test cũ (không còn bảng VaiTro nên là no-op)
      */
     static async khoiTaoVaiTroMacDinh() {
-        const danhSachVaiTro = [
-            {
-                _id: ROLES.KHACH,
-                tenVaiTro: 'Khách',
-                danhSachQuyen: ROLE_PERMISSIONS[ROLES.KHACH],
-                moTa: 'Người dùng vãng lai chưa đăng nhập',
-            },
-            {
-                _id: ROLES.DOCGIA,
-                tenVaiTro: 'Độc giả',
-                danhSachQuyen: ROLE_PERMISSIONS[ROLES.DOCGIA],
-                moTa: 'Độc giả thư viện',
-            },
-            {
-                _id: ROLES.NHANVIEN,
-                tenVaiTro: 'Nhân viên thư viện',
-                danhSachQuyen: ROLE_PERMISSIONS[ROLES.NHANVIEN],
-                moTa: 'Nhân viên quản lý sách và mượn trả',
-            },
-            {
-                _id: ROLES.QUANTRIVIEN,
-                tenVaiTro: 'Quản trị viên',
-                danhSachQuyen: ROLE_PERMISSIONS[ROLES.QUANTRIVIEN],
-                moTa: 'Quản trị toàn quyền hệ thống',
-            },
-        ];
-
-        for (const vaiTro of danhSachVaiTro) {
-            await VaiTro.findByIdAndUpdate(vaiTro._id, vaiTro, {
-                upsert: true,
-                returnDocument: 'after',
-            });
-        }
+        return true;
     }
 
     /**
-     * Tạo mã độc giả gồm 10 ký tự, gồm DG + 1 chữ + 7 số, quét qua từ DGA0000000 đến DGZ9999999
+     * Tạo tài khoản (tương thích backward)
      */
+    static async dangKyTaiKhoan(data) {
+        return this.dangKyDocGia(data);
+    }
+
+    /**
+     * Tạo hồ sơ độc giả (tương thích backward)
+     */
+    static async taoHoSoDocGia(data) {
+        return DocGia.findById(data.taiKhoanId || data._id);
+    }
+
+    /**
+     * Tạo nhân viên trọn gói (hỗ trợ test cũ)
+     */
+    static async dangKyNhanVien(data) {
+        const NhanVienService = require('./nhanvien.service');
+        const chucVu = data.isAdmin
+            ? CHUC_VU_NHAN_VIEN.ADMIN
+            : data.chucVu || CHUC_VU_NHAN_VIEN.NHAN_VIEN;
+        const nhanVien = await NhanVienService.taoNhanVien({
+            hoTenNv: data.hoTen,
+            password: data.password,
+            chucVu,
+            diaChi: data.diaChi,
+            soDienThoai: data.dienThoai || data.soDienThoai,
+            luong: data.luong,
+        });
+
+        let docGia = null;
+        if (data.taoHoSoDocGia) {
+            const DocGiaService = require('./docgia.service');
+            docGia = await DocGiaService.taoDocGiaTaiQuay({
+                hoLot: data.hoLot || data.hoTen.split(' ')[0] || 'NV',
+                ten:
+                    data.ten ||
+                    data.hoTen.split(' ').slice(1).join(' ') ||
+                    data.hoTen,
+                dienThoai: data.dienThoai || data.soDienThoai,
+                loaiDocGia: LOAI_DOC_GIA.NHANVIEN,
+                diaChi: data.diaChi,
+            });
+        }
+
+        return { nhanVien, docGia };
+    }
     static async taoMaDocGia() {
         const prefix = 'DG';
         const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-
-        // Lấy danh sách mã độc giả hiện có
         const docGias = await DocGia.find({}, { maDocGia: 1, _id: 0 }).lean();
 
-        // Tìm mã lớn nhất hiện có
         let maxIndex = -1;
-
-        for (const docGia of docGias) {
-            const match = docGia.maDocGia?.match(/^DG([A-Z])(\d{7})$/);
-
+        for (const dg of docGias) {
+            const match = dg.maDocGia?.match(/^DG([A-Z])(\d{7})$/);
             if (match) {
                 const letterIndex = letters.indexOf(match[1]);
                 const number = Number(match[2]);
-
                 const index = letterIndex * 10_000_000 + number;
-
                 maxIndex = Math.max(maxIndex, index);
             }
         }
 
-        // Mã tiếp theo
         const nextIndex = maxIndex + 1;
-
-        // Kiểm tra đã hết mã hay chưa
         if (nextIndex >= 26 * 10_000_000) {
             throw new Error('Đã hết mã độc giả có thể tạo.');
         }
 
-        // Tách chữ cái và phần số
         const letterIndex = Math.floor(nextIndex / 10_000_000);
         const number = nextIndex % 10_000_000;
-
-        const code = `${prefix}${letters[letterIndex]}${String(number).padStart(7, '0')}`;
-
-        return code;
+        return `${prefix}${letters[letterIndex]}${String(number).padStart(7, '0')}`;
     }
 
     /**
@@ -98,45 +99,31 @@ class AuthService {
     static async taoMaNhanVien() {
         const prefix = 'S';
         const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-
-        // Lấy danh sách mã nhân viên hiện có
         const nhanViens = await NhanVien.find({}, { msnv: 1, _id: 0 }).lean();
 
-        // Tìm mã lớn nhất hiện có
         let maxIndex = -1;
-
-        for (const nhanVien of nhanViens) {
-            const match = nhanVien.msnv?.match(/^S([A-Z])(\d{6})$/);
-
+        for (const nv of nhanViens) {
+            const match = nv.msnv?.match(/^S([A-Z])(\d{6})$/);
             if (match) {
                 const letterIndex = letters.indexOf(match[1]);
                 const number = Number(match[2]);
-
                 const index = letterIndex * 1_000_000 + number;
-
                 maxIndex = Math.max(maxIndex, index);
             }
         }
 
-        // Mã tiếp theo
         const nextIndex = maxIndex + 1;
-
-        // Kiểm tra đã hết mã hay chưa
         if (nextIndex >= 26 * 1_000_000) {
             throw new Error('Đã hết mã nhân viên có thể tạo.');
         }
 
-        // Tách chữ cái và phần số
         const letterIndex = Math.floor(nextIndex / 1_000_000);
         const number = nextIndex % 1_000_000;
-
-        const code = `${prefix}${letters[letterIndex]}${String(number).padStart(6, '0')}`;
-
-        return code;
+        return `${prefix}${letters[letterIndex]}${String(number).padStart(6, '0')}`;
     }
 
     /**
-     * Hàm băm mật khẩu
+     * Hash mật khẩu
      */
     static async bamMatKhau(plainPassword) {
         const salt = await bcrypt.genSalt(10);
@@ -144,60 +131,60 @@ class AuthService {
     }
 
     /**
-     * Hàm kiểm tra mật khẩu
+     * So khớp mật khẩu
      */
     static async kiemTraMatKhau(plainPassword, hashedPassword) {
         return bcrypt.compare(plainPassword, hashedPassword);
     }
 
     /**
-     * Đăng ký tài khoản chung
+     * Tạo JWT token chứa thông tin xác thực
      */
-    static async dangKyTaiKhoan({
-        email,
-        password,
-        maVaiTro = ROLES.DOCGIA,
-        avatar = '',
-    }) {
+    static taoToken(payload) {
+        return jwt.sign(payload, config.jwt.secret, {
+            expiresIn: config.jwt.expiresIn,
+        });
+    }
+
+    /**
+     * Ánh xạ chức vụ nhân viên sang Role
+     */
+    static xacDinhRoleNhanVien(chucVu) {
+        if (chucVu === CHUC_VU_NHAN_VIEN.ADMIN) {
+            return ROLES.QUANTRIVIEN;
+        }
+        if (
+            chucVu === CHUC_VU_NHAN_VIEN.NHAN_VIEN ||
+            chucVu === CHUC_VU_NHAN_VIEN.QUAN_LY
+        ) {
+            return ROLES.NHANVIEN;
+        }
+        return ROLES.KHACH;
+    }
+
+    /**
+     * Đăng ký độc giả trực tuyến
+     */
+    static async dangKyDocGia(data) {
+        const {
+            email,
+            password,
+            hoLot,
+            ten,
+            dienThoai,
+            loaiDocGia = LOAI_DOC_GIA.DOCGIA_TUDO,
+            diaChi = '',
+            ngaySinh = null,
+            phai = 'khac',
+            avatar = '',
+        } = data;
+
         if (!email) {
-            throw new ApiError(400, 'Email là bắt buộc.');
+            throw new ApiError(400, 'Email là bắt buộc đối với đăng ký độc giả trực tuyến.');
         }
         if (!password) {
             throw new ApiError(400, 'Mật khẩu là bắt buộc.');
         }
-
-        const emailExists = await TaiKhoan.findOne({
-            email: email.toLowerCase(),
-        });
-        if (emailExists) {
-            throw new ApiError(400, 'Email này đã được sử dụng.');
-        }
-
-        const hashedPassword = await this.bamMatKhau(password);
-
-        const taiKhoan = new TaiKhoan({
-            email,
-            password: hashedPassword,
-            avatar,
-            maVaiTro,
-        });
-        await taiKhoan.save();
-        return taiKhoan;
-    }
-
-    /**
-     * Tạo hồ sơ độc giả cho tài khoản
-     */
-    static async taoHoSoDocGia({
-        taiKhoanId,
-        hoLot,
-        ten,
-        dienThoai,
-        loaiDocGia = LOAI_DOC_GIA.DOCGIA_TUDO,
-        diaChi = '',
-        ngaySinh = null,
-        phai = 'khac',
-    }) {
         if (!dienThoai || !dienThoai.trim()) {
             throw new ApiError(400, 'Số điện thoại độc giả là bắt buộc.');
         }
@@ -205,179 +192,183 @@ class AuthService {
             throw new ApiError(400, 'Họ lót và tên là bắt buộc.');
         }
 
-        const taiKhoan = await TaiKhoan.findById(taiKhoanId);
-        if (!taiKhoan) {
-            throw new ApiError(404, 'Không tìm thấy tài khoản.');
+        const emailExists = await DocGia.findOne({ email: email.toLowerCase() });
+        if (emailExists) {
+            throw new ApiError(400, 'Email này đã được sử dụng.');
         }
 
+        const hashedPassword = await this.bamMatKhau(password);
         const maDocGia = await this.taoMaDocGia();
 
         const docGia = new DocGia({
-            _id: taiKhoanId,
             maDocGia,
             hoLot,
             ten,
-            dienThoai,
-            diaChi,
             ngaySinh,
             phai,
-            loaiDocGia,
-            diemDocGia: DIEM.MAC_DINH,
-            trangThai: TRANG_THAI_DOC_GIA.HOAT_DONG,
-        });
-        await docGia.save();
-        return docGia;
-    }
-
-    /**
-     * Tạo hồ sơ nhân viên cho tài khoản
-     */
-    static async taoHoSoNhanVien({
-        taiKhoanId,
-        hoTen,
-        dienThoai,
-        chucVu = CHUC_VU_NHAN_VIEN.NHAN_VIEN,
-        diaChi = '',
-        luong = 0,
-    }) {
-        if (!dienThoai || !dienThoai.trim()) {
-            throw new ApiError(400, 'Số điện thoại nhân viên là bắt buộc.');
-        }
-        if (!hoTen) {
-            throw new ApiError(400, 'Họ tên nhân viên là bắt buộc.');
-        }
-
-        const taiKhoan = await TaiKhoan.findById(taiKhoanId);
-        if (!taiKhoan) {
-            throw new ApiError(404, 'Không tìm thấy tài khoản.');
-        }
-
-        const msnv = await this.taoMaNhanVien();
-
-        const nhanVien = new NhanVien({
-            _id: taiKhoanId,
-            msnv,
-            hoTen,
-            chucVu,
             diaChi,
             dienThoai,
-            luong,
+            email: email.toLowerCase(),
+            password: hashedPassword,
+            avatar,
+            loaiDocGia,
+            diemDocGia: DIEM.MAC_DINH,
+            trangThaiTaiKhoan: TRANG_THAI_DOC_GIA.HOAT_DONG,
+            ngayCapNhatDiemKhongViPham: new Date(),
         });
-        await nhanVien.save();
-        return nhanVien;
-    }
 
-    /**
-     * Đăng ký độc giả hoàn chỉnh (tạo tài khoản -> tạo hồ sơ độc giả)
-     */
-    static async dangKyDocGia(data) {
-        const taiKhoan = await this.dangKyTaiKhoan({
-            email: data.email,
-            password: data.password,
+        await docGia.save();
+
+        const token = this.taoToken({
+            _id: docGia._id,
+            maDocGia: docGia.maDocGia,
+            email: docGia.email,
+            role: ROLES.DOCGIA,
             maVaiTro: ROLES.DOCGIA,
-            avatar: data.avatar,
         });
 
-        const docGia = await this.taoHoSoDocGia({
-            taiKhoanId: taiKhoan._id,
-            hoLot: data.hoLot,
-            ten: data.ten,
-            dienThoai: data.dienThoai,
-            loaiDocGia: data.loaiDocGia,
-            diaChi: data.diaChi,
-            ngaySinh: data.ngaySinh,
-            phai: data.phai,
-        });
-
-        return { taiKhoan, docGia };
-    }
-
-    /**
-     * Đăng ký nhân viên hoàn chỉnh (tạo tài khoản -> tạo hồ sơ nhân viên + tùy chọn hồ sơ độc giả nếu muốn mượn sách)
-     */
-    static async dangKyNhanVien(data) {
-        const maVaiTro = data.isAdmin ? ROLES.QUANTRIVIEN : ROLES.NHANVIEN;
-        const taiKhoan = await this.dangKyTaiKhoan({
-            email: data.email,
-            password: data.password,
-            maVaiTro,
-            avatar: data.avatar,
-        });
-
-        const nhanVien = await this.taoHoSoNhanVien({
-            taiKhoanId: taiKhoan._id,
-            hoTen: data.hoTen,
-            dienThoai: data.dienThoai,
-            chucVu: data.chucVu,
-            diaChi: data.diaChi,
-            luong: data.luong,
-        });
-
-        // Nhân viên có thể đồng thời tạo hồ sơ độc giả để mượn sách
-        let docGia = null;
-        if (data.taoHoSoDocGia) {
-            docGia = await this.taoHoSoDocGia({
-                taiKhoanId: taiKhoan._id,
-                hoLot: data.hoLot || data.hoTen.split(' ')[0] || 'NV',
-                ten:
-                    data.ten ||
-                    data.hoTen.split(' ').slice(1).join(' ') ||
-                    data.hoTen,
-                dienThoai: data.dienThoai,
-                loaiDocGia: LOAI_DOC_GIA.NHANVIEN,
-                diaChi: data.diaChi,
-            });
-        }
-
-        return { taiKhoan, nhanVien, docGia };
-    }
-
-    /**
-     * Đăng nhập: Kiểm tra mật khẩu băm & kiểm tra trạng thái thẻ độc giả nếu vai trò là độc giả
-     */
-    static async dangNhap({ email, password }) {
-        if (!email || !password) {
-            throw new ApiError(400, 'Vui lòng cung cấp email và mật khẩu.');
-        }
-
-        const taiKhoan = await TaiKhoan.findOne({ email: email.toLowerCase() });
-        if (!taiKhoan) {
-            throw new ApiError(401, 'Email chưa được đăng ký.');
-        }
-
-        const isMatch = await this.kiemTraMatKhau(password, taiKhoan.password);
-        if (!isMatch) {
-            throw new ApiError(401, 'Email hoặc mật khẩu không chính xác.');
-        }
-
-        // Nếu vai trò là độc giả, kiểm tra DocGia.trangThai và tình trạng tốt nghiệp
-        if (taiKhoan.maVaiTro === ROLES.DOCGIA) {
-            const docGia = await DocGia.findById(taiKhoan._id);
-            if (docGia) {
-                if (docGia.daTotNghiep) {
-                    throw new ApiError(
-                        403,
-                        'Bạn đã tốt nghiệp, nếu muốn tiếp tục sử dụng dịch vụ, vui lòng đăng ký thẻ độc giả tự do.',
-                    );
-                }
-                if (docGia.trangThai === TRANG_THAI_DOC_GIA.TAM_KHOA) {
-                    throw new ApiError(403, 'Thẻ độc giả đang bị tạm khóa.');
-                }
-                if (docGia.trangThai === TRANG_THAI_DOC_GIA.DA_HUY) {
-                    throw new ApiError(403, 'Thẻ độc giả đã bị hủy.');
-                }
-            }
-        }
+        const docGiaRes = docGia.toObject();
+        delete docGiaRes.password;
 
         return {
-            _id: taiKhoan._id,
-            email: taiKhoan.email,
-            maVaiTro: taiKhoan.maVaiTro,
+            docGia,
+            token,
         };
     }
 
-    static kiemTraQuyen(maVaiTro, requiredPermission) {
-        const permissions = ROLE_PERMISSIONS[maVaiTro] || [];
+    /**
+     * Đăng nhập độc giả (bằng EMAIL hoặc MADOCGIA và PASSWORD)
+     */
+    static async dangNhapDocGia({ identifier, email, maDocGia, password }) {
+        const iden = (identifier || email || maDocGia || '').trim();
+        if (!iden || !password) {
+            throw new ApiError(400, 'Vui lòng cung cấp Email hoặc Mã độc giả và Mật khẩu.');
+        }
+
+        const docGia = await DocGia.findOne({
+            $or: [
+                { email: iden.toLowerCase() },
+                { maDocGia: iden.toUpperCase() },
+            ],
+        }).select('+password');
+
+        if (!docGia) {
+            throw new ApiError(401, 'Tài khoản độc giả không tồn tại.');
+        }
+
+        if (!docGia.password) {
+            throw new ApiError(403, 'Hồ sơ độc giả này chưa thiết lập mật khẩu đăng nhập trực tuyến.');
+        }
+
+        const isMatch = await this.kiemTraMatKhau(password, docGia.password);
+        if (!isMatch) {
+            throw new ApiError(401, 'Thông tin đăng nhập hoặc mật khẩu không chính xác.');
+        }
+
+        if (docGia.daTotNghiep) {
+            throw new ApiError(
+                403,
+                'Bạn đã tốt nghiệp, nếu muốn tiếp tục sử dụng dịch vụ, vui lòng đăng ký thẻ độc giả tự do.',
+            );
+        }
+        if (docGia.trangThaiTaiKhoan === TRANG_THAI_DOC_GIA.TAM_KHOA) {
+            throw new ApiError(403, 'Thẻ độc giả đang bị tạm khóa.');
+        }
+        if (docGia.trangThaiTaiKhoan === TRANG_THAI_DOC_GIA.DA_HUY) {
+            throw new ApiError(403, 'Thẻ độc giả đã bị hủy.');
+        }
+
+        const token = this.taoToken({
+            _id: docGia._id,
+            maDocGia: docGia.maDocGia,
+            email: docGia.email,
+            role: ROLES.DOCGIA,
+            maVaiTro: ROLES.DOCGIA,
+        });
+
+        const docGiaRes = docGia.toObject();
+        delete docGiaRes.password;
+
+        return {
+            _id: docGia._id,
+            email: docGia.email,
+            docGia: docGiaRes,
+            token,
+            role: ROLES.DOCGIA,
+            maVaiTro: ROLES.DOCGIA,
+        };
+    }
+
+    /**
+     * Đăng nhập nhân viên (bằng MSNV và PASSWORD)
+     */
+    static async dangNhapNhanVien({ msnv, password }) {
+        if (!msnv || !password) {
+            throw new ApiError(400, 'Vui lòng cung cấp mã số nhân viên (MSNV) và mật khẩu.');
+        }
+
+        const nhanVien = await NhanVien.findOne({
+            msnv: msnv.trim().toUpperCase(),
+        }).select('+password');
+
+        if (!nhanVien) {
+            throw new ApiError(401, 'Mã số nhân viên hoặc mật khẩu không chính xác.');
+        }
+
+        const isMatch = await this.kiemTraMatKhau(password, nhanVien.password);
+        if (!isMatch) {
+            throw new ApiError(401, 'Mã số nhân viên hoặc mật khẩu không chính xác.');
+        }
+
+        const role = this.xacDinhRoleNhanVien(nhanVien.chucVu);
+        if (role === ROLES.KHACH || nhanVien.daNghiViec) {
+            throw new ApiError(403, 'Nhân viên này đã nghỉ việc hoặc không có quyền truy cập hệ thống.');
+        }
+
+        const token = this.taoToken({
+            _id: nhanVien._id,
+            msnv: nhanVien.msnv,
+            chucVu: nhanVien.chucVu,
+            role,
+            maVaiTro: role,
+        });
+
+        const nvRes = nhanVien.toObject();
+        delete nvRes.password;
+
+        return {
+            nhanVien: nvRes,
+            token,
+            role,
+            maVaiTro: role,
+        };
+    }
+
+    /**
+     * Đăng nhập hợp nhất (hỗ trợ cả client cũ gọi /api/auth/dang-nhap)
+     */
+    static async dangNhap({ email, msnv, password, identifier }) {
+        if (msnv) {
+            return this.dangNhapNhanVien({ msnv, password });
+        }
+        if (identifier) {
+            const isMSNV = /^S[A-Z]\d{6}$/i.test(identifier.trim());
+            if (isMSNV) {
+                return this.dangNhapNhanVien({ msnv: identifier, password });
+            }
+            return this.dangNhapDocGia({ identifier, password });
+        }
+        if (email) {
+            return this.dangNhapDocGia({ email, password });
+        }
+        throw new ApiError(400, 'Vui lòng cung cấp thông tin đăng nhập.');
+    }
+
+    /**
+     * Hàm kiểm tra quyền
+     */
+    static kiemTraQuyen(role, requiredPermission) {
+        const permissions = ROLE_PERMISSIONS[role] || [];
         return permissions.includes(requiredPermission);
     }
 }

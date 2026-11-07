@@ -44,35 +44,65 @@ const sachSchema = new Schema(
             required: true,
             index: true,
         },
-        maTG: [
-            {
-                type: Schema.Types.ObjectId,
-                ref: 'TacGia',
-                required: true,
-                index: true,
-            },
-        ],
-        maDM: [
-            {
-                type: Schema.Types.ObjectId,
-                ref: 'DanhMuc',
-                required: true,
-                index: true,
-            },
-        ],
         hinhAnh: {
             type: String,
             default: '',
+        },
+        nguonGoc: {
+            type: String,
+            default: '',
+            trim: true,
         },
         ngonNgu: {
             type: String,
             default: 'Tiếng Việt',
             trim: true,
         },
+        tacGia: {
+            type: Schema.Types.ObjectId,
+            ref: 'TacGia',
+            required: true,
+            index: true,
+        },
+        danhMuc: {
+            type: Schema.Types.ObjectId,
+            ref: 'DanhMuc',
+            required: true,
+            index: true,
+        },
     },
     {
         timestamps: true,
     },
 );
+
+sachSchema.pre('validate', function () {
+    if (!this.tacGia && this.maTG) {
+        this.tacGia = Array.isArray(this.maTG) ? this.maTG[0] : this.maTG;
+    }
+    if (!this.danhMuc && this.maDM) {
+        this.danhMuc = Array.isArray(this.maDM) ? this.maDM[0] : this.maDM;
+    }
+});
+
+// Virtual aliases để tương thích maTG, maDM
+sachSchema.virtual('maTG')
+    .get(function () {
+        return this.tacGia ? [this.tacGia] : [];
+    })
+    .set(function (val) {
+        this.tacGia = Array.isArray(val) ? val[0] : val;
+    });
+
+sachSchema.virtual('maDM')
+    .get(function () {
+        return this.danhMuc ? [this.danhMuc] : [];
+    })
+    .set(function (val) {
+        this.danhMuc = Array.isArray(val) ? val[0] : val;
+    });
+
+sachSchema.set('toJSON', { virtuals: true });
+sachSchema.set('toObject', { virtuals: true });
 
 module.exports = mongoose.model('Sach', sachSchema, 'sachs');

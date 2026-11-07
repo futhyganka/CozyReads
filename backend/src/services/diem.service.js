@@ -28,8 +28,7 @@ class DiemService {
     }
 
     /**
-     * Hàm quét và cập nhật trạng thái mượn sách quá hạn:
-     * Chuyển các lượt mượn có ngayHenTra < thoiDiemHienTai và đang ở trạng thái 'dangMuon' sang 'quaHan'.
+     * Quét và cập nhật trạng thái mượn sách quá hạn ('dangMuon' -> 'quaHan')
      */
     static async kiemTraVaCapNhatTrangThaiMuonSach(
         thoiDiemHienTai = new Date(),
@@ -49,17 +48,14 @@ class DiemService {
     }
 
     /**
-     * Tự động quét và trừ điểm đối với các độc giả đang có sách quá hạn.
-     * Quy tắc cập nhật theo ngày:
-     * - Không cần lưu soNgayQuaHan trong DB.
-     * - Hàm đếm số lượng sách có trangThai = 'quaHan' của độc giả đó.
-     * - Cứ mỗi cuốn sách quá hạn thì độc giả bị trừ 1 điểm trong ngày đó (hoặc trừ theo số lượng sách quá hạn).
+     * Quét và trừ điểm đối với các độc giả đang có sách quá hạn (1 điểm / ngày / cuốn)
+     * - Chỉ trừ điểm cho mỗi ngày quá hạn trôi qua kể từ mốc đã trừ trước đó, tránh trừ trùng lặp
+     * - Cập nhật ngayCapNhatDiemKhongViPham = now
      */
     static async quetVaTruDiemQuaHan(thoiDiemHienTai = new Date()) {
         const now = new Date(thoiDiemHienTai);
 
-        // Lấy danh sách độc giả đang có sách quá hạn
-        const dsDocGiaCoSachQuaHan = await TheoDoiMuonSach.distinct('docGia', {
+        const dsDocGiaCoSachQuaHan = await TheoDoiMuonSach.distinct('maDocGia', {
             trangThai: TRANG_THAI_MUON.QUA_HAN,
         });
 
@@ -69,9 +65,8 @@ class DiemService {
             const docGia = await DocGia.findById(docGiaId);
             if (!docGia) continue;
 
-            // Đếm số lượng sách đang bị quá hạn của độc giả này
             const soLuongSachQuaHan = await TheoDoiMuonSach.countDocuments({
-                docGia: docGiaId,
+                maDocGia: docGiaId,
                 trangThai: TRANG_THAI_MUON.QUA_HAN,
             });
 
@@ -80,13 +75,11 @@ class DiemService {
                     soLuongSachQuaHan * DIEM.DIEM_TRU_QUA_HAN_MOI_NGAY;
                 docGia.diemDocGia = Math.max(
                     DIEM.TOI_THIEU,
-                    docGia.diemDocGia - diemTru,
+                    Math.min(DIEM.TOI_DA, docGia.diemDocGia - diemTru),
                 );
-                // Reset mốc tính điểm thưởng vì đang vi phạm
                 docGia.ngayCapNhatDiemKhongViPham = now;
                 await docGia.save();
 
-                // Kiểm tra nếu điểm giảm làm số sách đang mượn vượt giới hạn mới
                 await this.kiemTraVaXuLyVuotHanMucMuon(docGia._id);
 
                 ketQua.push({
@@ -103,65 +96,67 @@ class DiemService {
     }
 
     /**
-     * Tự động quét và cộng điểm sau mỗi 3 ngày không vi phạm
-     * Quy tắc:
-     * - Độc giả không có sách quá hạn (quaHan)
-     * - Độc giả không có sách mất chưa đền (daMat)
-     * - Trạng thái độc giả là hoạt động (hoatDong)
-     * - Cứ mỗi 3 ngày không vi phạm kể từ ngayCapNhatDiemKhongViPham, cộng 1 điểm (tối đa 100).
+     * Tự động quét và cộng điểm cho độc giả không vi phạm (+1 điểm sau mỗi 3 ngày)
      */
     static async quetVaCongDiemKhongViPham(thoiDiemHienTai = new Date()) {
         const now = new Date(thoiDiemHienTai);
+
         const danhSachDocGia = await DocGia.find({
-            trangThai: TRANG_THAI_DOC_GIA.HOAT_DONG,
+            trangThaiTaiKhoan: TRANG_THAI_DOC_GIA.HOAT_DONG,
             diemDocGia: { $lt: DIEM.TOI_DA },
         });
 
         const ketQua = [];
 
         for (const docGia of danhSachDocGia) {
-            // Kiểm tra xem độc giả có vi phạm hay không
-            const coViPham = await TheoDoiMuonSach.exists({
-                docGia: docGia._id,
+            const coSachQuaHanHoacMat = await TheoDoiMuonSach.exists({
+                maDocGia: docGia._id,
                 trangThai: {
                     $in: [TRANG_THAI_MUON.QUA_HAN, TRANG_THAI_MUON.DA_MAT],
                 },
             });
 
-            if (coViPham) {
-                docGia.ngayCapNhatDiemKhongViPham = now;
-                await docGia.save();
+            if (coSachQuaHanHoacMat) {
                 continue;
             }
 
-            // Tính số ngày trôi qua kể từ lần cập nhật gần nhất
-            const mocCu = docGia.ngayCapNhatDiemKhongViPham
+            const mocTinhDiem = docGia.ngayCapNhatDiemKhongViPham
                 ? new Date(docGia.ngayCapNhatDiemKhongViPham)
                 : new Date(docGia.createdAt || now);
-            const diffTime = now.getTime() - mocCu.getTime();
-            const soNgay = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
-            if (soNgay >= DIEM.SO_NGAY_TICH_DIEM) {
-                const soChuKy = Math.floor(soNgay / DIEM.SO_NGAY_TICH_DIEM);
-                const diemCong = soChuKy * DIEM.DIEM_CONG_MOI_CHU_KY;
+            const soNgayTroiQua = Math.floor(
+                (now.getTime() - mocTinhDiem.getTime()) / (1000 * 60 * 60 * 24),
+            );
+
+            if (soNgayTroiQua >= DIEM.SO_NGAY_TICH_DIEM) {
+                const chuKy = Math.floor(
+                    soNgayTroiQua / DIEM.SO_NGAY_TICH_DIEM,
+                );
+                const diemCong = chuKy * DIEM.DIEM_CONG_MOI_CHU_KY;
                 const diemMoi = Math.min(
                     DIEM.TOI_DA,
                     docGia.diemDocGia + diemCong,
                 );
 
-                const soMiligiayTien =
-                    soChuKy * DIEM.SO_NGAY_TICH_DIEM * 24 * 60 * 60 * 1000;
-                docGia.ngayCapNhatDiemKhongViPham = new Date(
-                    mocCu.getTime() + soMiligiayTien,
+                const ngayCapNhatMoi = new Date(
+                    mocTinhDiem.getTime() +
+                        chuKy *
+                            DIEM.SO_NGAY_TICH_DIEM *
+                            24 *
+                            60 *
+                            60 *
+                            1000,
                 );
+
                 docGia.diemDocGia = diemMoi;
+                docGia.ngayCapNhatDiemKhongViPham = ngayCapNhatMoi;
                 await docGia.save();
 
                 ketQua.push({
                     docGiaId: docGia._id,
                     maDocGia: docGia.maDocGia,
                     diemCong,
-                    diemMoi,
+                    diemMoi: docGia.diemDocGia,
                 });
             }
         }
@@ -170,19 +165,14 @@ class DiemService {
     }
 
     /**
-     * Kiểm tra khi điểm độc giả giảm xuống dưới số lượng sách đang mượn.
+     * Kiểm tra khi điểm độc giả giảm xuống dưới số lượng sách đang mượn
      */
-    static async kiemTraVaXuLyVuotHanMucMuon(
-        docGiaId,
-        buocKhoaTheNgay = false,
-    ) {
+    static async kiemTraVaXuLyVuotHanMucMuon(docGiaId) {
         const docGia = await DocGia.findById(docGiaId);
         if (!docGia) return null;
 
-        const soSachToiDa = this.tinhSoSachToiDa(docGia.diemDocGia);
-
         const soSachDangGiu = await TheoDoiMuonSach.countDocuments({
-            docGia: docGiaId,
+            maDocGia: docGiaId,
             trangThai: {
                 $in: [
                     TRANG_THAI_MUON.DANG_MUON,
@@ -192,26 +182,22 @@ class DiemService {
             },
         });
 
-        if (soSachDangGiu > soSachToiDa) {
-            if (buocKhoaTheNgay || docGia.diemDocGia < 10) {
-                docGia.trangThai = TRANG_THAI_DOC_GIA.TAM_KHOA;
-                await docGia.save();
-            }
+        const hanMucHienTai = this.tinhSoSachToiDa(docGia.diemDocGia);
+
+        if (soSachDangGiu > hanMucHienTai) {
             return {
-                vuotHanMuc: true,
+                canhBao: true,
+                docGiaId: docGia._id,
                 soSachDangGiu,
-                soSachToiDa,
-                trangThaiThe: docGia.trangThai,
-                thongBao:
-                    'Số sách đang mượn vượt quá hạn mức điểm. Cần trả bớt sách hoặc thẻ sẽ bị tạm khóa.',
+                hanMucHienTai,
+                thongBao: `Độc giả đang giữ ${soSachDangGiu} cuốn nhưng hạn mức hiện tại chỉ được ${hanMucHienTai} cuốn. Cần trả bớt sách hoặc thẻ sẽ bị tạm khóa.`,
             };
         }
 
         return {
-            vuotHanMuc: false,
+            canhBao: false,
             soSachDangGiu,
-            soSachToiDa,
-            trangThaiThe: docGia.trangThai,
+            hanMucHienTai,
         };
     }
 }

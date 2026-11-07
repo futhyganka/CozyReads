@@ -15,6 +15,13 @@ async function runDailyCronTasks(thoiDiem = new Date()) {
         `[CRON] Bắt đầu chạy tác vụ tự động hàng ngày: ${new Date(thoiDiem).toISOString()}`,
     );
 
+    // 0. Quét và tự động hủy các yêu cầu giữ sách trực tuyến quá 24h
+    const MuonTraService = require('../services/muontra.service');
+    const dsHuyGiuSach = await MuonTraService.quetVaHuyYeuCauGiuSachQuaHan(thoiDiem);
+    console.log(
+        `[CRON] Đã hủy các yêu cầu giữ sách quá 24h: ${dsHuyGiuSach.length} lượt.`,
+    );
+
     // 1. Kiểm tra và cập nhật trạng thái các lượt mượn quá ngày hẹn trả sang 'quaHan'
     const soLuongCapNhatQuaHan =
         await DiemService.kiemTraVaCapNhatTrangThaiMuonSach(thoiDiem);

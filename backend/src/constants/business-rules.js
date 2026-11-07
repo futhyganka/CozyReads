@@ -83,11 +83,13 @@ const BUSINESS_RULES = {
     },
 
     TRANG_THAI_MUON: {
-        DANG_MUON: 'dangMuon',
+        YEU_CAU_GIU_SACH: 'yeuCau_giuSach', // Độc giả tự tạo online để giữ sách (trong 24h)
+        DANG_MUON: 'dangMuon',             // Đã xác nhận mượn tại quầy
         DA_TRA: 'daTra',
         QUA_HAN: 'quaHan',
         DA_MAT: 'daMat',
         DA_BOI_THUONG: 'daBoiThuong',
+        DA_HUY: 'daHuy',                   // Hủy yêu cầu giữ sách nếu quá 24h
     },
 
     // Quá hạn không phạt tiền, chỉ trừ điểm!

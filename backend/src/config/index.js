@@ -9,6 +9,10 @@ const config = {
     db: {
         url: process.env.MONGODB_URL || mongoURI,
     },
+    jwt: {
+        secret: process.env.JWT_SECRET || 'cozyreads_jwt_secret_key_2026',
+        expiresIn: process.env.JWT_EXPIRES_IN || '7d',
+    },
 };
 
 module.exports = config;

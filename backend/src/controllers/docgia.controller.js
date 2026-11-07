@@ -1,32 +1,121 @@
-const { DocGia } = require('../models');
 const DocGiaService = require('../services/docgia.service');
-const DiemService = require('../services/diem.service');
-const ApiError = require('../api-error');
 
 class DocGiaController {
-    // [GET] /api/doc-gia/:id
-    static async getThongTinDocGia(req, res, next) {
+    // [GET] /api/docgias hoặc /api/doc-gia
+    static async getDanhSachDocGia(req, res, next) {
         try {
-            const docGia = await DocGia.findById(req.params.id).populate(
-                '_id',
-                'email avatar',
-            );
-            if (!docGia) throw new ApiError(404, 'Không tìm thấy độc giả.');
+            const { search, loaiDocGia, trangThai, page, limit } = req.query;
+            const ketQua = await DocGiaService.getDanhSachDocGia({
+                search,
+                loaiDocGia,
+                trangThai,
+                page,
+                limit,
+            });
+            res.json({ success: true, ...ketQua });
+        } catch (error) {
+            next(error);
+        }
+    }
 
-            const soSachToiDa = DiemService.tinhSoSachToiDa(docGia.diemDocGia);
-            res.json({
+    // [GET] /api/docgias/:id hoặc /api/doc-gia/:id
+    static async getChiTietDocGia(req, res, next) {
+        try {
+            const docGia = await DocGiaService.getChiTietDocGia(req.params.id);
+            res.json({ success: true, data: docGia });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    // [POST] /api/docgias (Tạo tại quầy)
+    static async taoDocGia(req, res, next) {
+        try {
+            const docGia = await DocGiaService.taoDocGiaTaiQuay(req.body);
+            res.status(201).json({
                 success: true,
-                data: {
-                    ...docGia.toObject(),
-                    soSachToiDa,
-                },
+                message: 'Tạo hồ sơ độc giả thành công.',
+                data: docGia,
             });
         } catch (error) {
             next(error);
         }
     }
 
-    // [POST] /api/doc-gia/:id/gia-han
+    // [PUT] /api/docgias/:id
+    static async capNhatDocGia(req, res, next) {
+        try {
+            const docGia = await DocGiaService.capNhatDocGia(
+                req.params.id,
+                req.body,
+            );
+            res.json({
+                success: true,
+                message: 'Cập nhật độc giả thành công.',
+                data: docGia,
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    // [DELETE] /api/docgias/:id
+    static async xoaDocGia(req, res, next) {
+        try {
+            const ketQua = await DocGiaService.xoaDocGia(req.params.id);
+            res.json({ success: true, ...ketQua });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    // [POST] /api/docgias/:id/doi-mat-khau
+    static async doiMatKhau(req, res, next) {
+        try {
+            const ketQua = await DocGiaService.doiMatKhau(
+                req.params.id,
+                req.body,
+            );
+            res.json(ketQua);
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    // [PATCH] /api/docgias/:id/trang-thai
+    static async capNhatTrangThaiThe(req, res, next) {
+        try {
+            const { trangThai } = req.body;
+            const docGia = await DocGiaService.capNhatTrangThaiThe(
+                req.params.id,
+                trangThai,
+            );
+            res.json({
+                success: true,
+                message: 'Cập nhật trạng thái thẻ thành công.',
+                data: docGia,
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    // [PATCH] /api/docgias/:id/diem
+    static async capNhatDiem(req, res, next) {
+        try {
+            const { diem } = req.body;
+            const docGia = await DocGiaService.capNhatDiem(req.params.id, diem);
+            res.json({
+                success: true,
+                message: 'Cập nhật điểm độc giả thành công.',
+                data: docGia,
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    // [POST] /api/docgias/:id/gia-han
     static async taoKhoanThanhToanGiaHan(req, res, next) {
         try {
             const { goiGiaHan, phuongThuc } = req.body;
@@ -37,12 +126,17 @@ class DocGiaController {
             });
             res.status(201).json({
                 success: true,
-                message: 'Tạo khoản thanh toán gia hạn thẻ thành công.',
+                message: 'Tạo yêu cầu thanh toán gia hạn thành công.',
                 data: thanhToan,
             });
         } catch (error) {
             next(error);
         }
+    }
+
+    // Tương thích cũ
+    static async getThongTinDocGia(req, res, next) {
+        return DocGiaController.getChiTietDocGia(req, res, next);
     }
 }
 
