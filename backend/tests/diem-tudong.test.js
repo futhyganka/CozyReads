@@ -1,5 +1,6 @@
 const assert = require('assert');
 const { connectTestDb, clearTestDb, disconnectTestDb } = require('./setup');
+const { taoRegistrationTokenTest } = require('./helpers');
 const {
     Sach,
     DocGia,
@@ -54,13 +55,17 @@ async function testDiemTuDong() {
         hoTen: 'Thủ Thư',
         dienThoai: '0988111222',
     });
-    const { docGia } = await AuthService.dangKyDocGia({
-        email: 'dg_diem@test.com',
+    const emailDgDiem = 'dg_diem@test.com';
+    const regTokenDgDiem = await taoRegistrationTokenTest(emailDgDiem);
+    await AuthService.dangKyDocGia({
+        registrationToken: regTokenDgDiem,
+        email: emailDgDiem,
         password: 'password123',
         hoLot: 'Lê',
         ten: 'Bình',
         dienThoai: '0988888888',
     });
+    const docGia = await DocGia.findOne({ email: emailDgDiem });
 
     // Case 1: Thang điểm
     console.log('Case 1: Kiểm tra thang điểm và số sách được mượn tối đa');
@@ -133,13 +138,17 @@ async function testDiemTuDong() {
 
     // Case 4: Tự động cộng điểm không vi phạm
     console.log('Case 4: Tự động cộng +1 điểm sau mỗi 3 ngày không vi phạm');
-    const { docGia: docGiaNgoan } = await AuthService.dangKyDocGia({
-        email: 'docgia_ngoan@test.com',
+    const emailNgoan = 'docgia_ngoan@test.com';
+    const regTokenNgoan = await taoRegistrationTokenTest(emailNgoan);
+    await AuthService.dangKyDocGia({
+        registrationToken: regTokenNgoan,
+        email: emailNgoan,
         password: 'password123',
         hoLot: 'Hoàng',
         ten: 'Dương',
         dienThoai: '0977777777',
     });
+    const docGiaNgoan = await DocGia.findOne({ email: emailNgoan });
     docGiaNgoan.diemDocGia = 80;
     docGiaNgoan.ngayCapNhatDiemKhongViPham = new Date('2026-01-01T00:00:00Z');
     await docGiaNgoan.save();

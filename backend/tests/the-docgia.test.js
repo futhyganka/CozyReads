@@ -1,5 +1,6 @@
 const assert = require('assert');
 const { connectTestDb, clearTestDb, disconnectTestDb } = require('./setup');
+const { taoRegistrationTokenTest } = require('./helpers');
 const { DocGia } = require('../src/models');
 const DocGiaService = require('../src/services/docgia.service');
 const AuthService = require('../src/services/auth.service');
@@ -29,9 +30,11 @@ async function testTheDocGia() {
 
     // Case 2: Bắt buộc dienThoai khi tạo độc giả
     console.log('Case 2: Bắt buộc số điện thoại khi đăng ký');
+    const tokenNoSdt = await taoRegistrationTokenTest('nosdt@test.com');
     let biLoiKhongSoDt = false;
     try {
         await AuthService.dangKyDocGia({
+            registrationToken: tokenNoSdt,
             email: 'nosdt@test.com',
             password: '123',
             hoLot: 'Lê',
@@ -46,14 +49,18 @@ async function testTheDocGia() {
 
     // Case 3: Tạo yêu cầu gia hạn thẻ
     console.log('Case 3: Tạo khoản thanh toán gia hạn thẻ độc giả tự do');
-    const { docGia } = await AuthService.dangKyDocGia({
-        email: 'dg_tudo@test.com',
+    const emailDgTuDo = 'dg_tudo@test.com';
+    const tokenDgTuDo = await taoRegistrationTokenTest(emailDgTuDo);
+    await AuthService.dangKyDocGia({
+        registrationToken: tokenDgTuDo,
+        email: emailDgTuDo,
         password: 'password123',
         hoLot: 'Phạm',
         ten: 'Hải',
         dienThoai: '0933333333',
         loaiDocGia: LOAI_DOC_GIA.DOCGIA_TUDO,
     });
+    const docGia = await DocGia.findOne({ email: emailDgTuDo });
 
     const yeuCauGiaHan = await DocGiaService.taoKhoanThanhToanGiaHan({
         docGiaId: docGia._id,
@@ -81,14 +88,18 @@ async function testTheDocGia() {
 
     // Case 5: Sinh viên hết hạn thẻ và đã tốt nghiệp sẽ bị hủy thẻ
     console.log('Case 5: Sinh viên tốt nghiệp hết hạn thẻ -> tự động hủy thẻ');
-    const { docGia: sv } = await AuthService.dangKyDocGia({
-        email: 'sinhvien@test.com',
+    const emailSv = 'sinhvien@test.com';
+    const tokenSv = await taoRegistrationTokenTest(emailSv);
+    await AuthService.dangKyDocGia({
+        registrationToken: tokenSv,
+        email: emailSv,
         password: 'password123',
         hoLot: 'Vũ',
         ten: 'Tuấn',
         dienThoai: '0944444444',
         loaiDocGia: LOAI_DOC_GIA.SINHVIEN,
     });
+    const sv = await DocGia.findOne({ email: emailSv });
     sv.daTotNghiep = true;
     sv.ngayHetHanThe = new Date('2026-01-01T00:00:00Z');
     await sv.save();
@@ -104,14 +115,18 @@ async function testTheDocGia() {
 
     // Case 6: Tự động tạo thanh toán gia hạn cho độc giả tự do và tự động gia hạn 6 tháng miễn phí cho độc giả khác
     console.log('Case 6: Tự động tạo thanh toán cho độc giả tự do & gia hạn miễn phí 6 tháng cho độc giả khác');
-    const { docGia: gv } = await AuthService.dangKyDocGia({
-        email: 'giangvien@test.com',
+    const emailGv = 'giangvien@test.com';
+    const tokenGv = await taoRegistrationTokenTest(emailGv);
+    await AuthService.dangKyDocGia({
+        registrationToken: tokenGv,
+        email: emailGv,
         password: 'password123',
         hoLot: 'Trần',
         ten: 'Hùng',
         dienThoai: '0955555555',
         loaiDocGia: LOAI_DOC_GIA.GIANGVIEN,
     });
+    const gv = await DocGia.findOne({ email: emailGv });
     gv.ngayHetHanThe = new Date('2026-02-01T00:00:00Z');
     gv.trangThaiGiaHan = TRANG_THAI_GIA_HAN.GIA_HAN;
     await gv.save();
@@ -123,6 +138,38 @@ async function testTheDocGia() {
     const gvUpdated = await DocGia.findById(gv._id);
     assert(gvUpdated.ngayHetHanThe > new Date('2026-02-05T00:00:00Z'));
     assert.strictEqual(gvUpdated.chuKyThanhToan, '6_thang_mien_phi');
+
+    // Case 7: Nhân viên đăng ký tài khoản / hồ sơ cho độc giả trực tiếp tại quầy
+    console.log('Case 7: Nhân viên đăng ký thẻ độc giả tại quầy (không bắt buộc email & password)');
+    const docGiaTaiQuay = await DocGiaService.taoDocGiaTaiQuay({
+        hoLot: 'Hoàng',
+        ten: 'Nam',
+        dienThoai: '0977889900',
+        loaiDocGia: LOAI_DOC_GIA.DOCGIA_TUDO,
+        chuKyThanhToan: '3_thang',
+    });
+    assert(docGiaTaiQuay.maDocGia.startsWith('DG'));
+    assert.strictEqual(docGiaTaiQuay.ten, 'Nam');
+    assert.strictEqual(docGiaTaiQuay.dienThoai, '0977889900');
+    assert.strictEqual(docGiaTaiQuay.diemDocGia, 100);
+    assert.strictEqual(docGiaTaiQuay.trangThaiTaiKhoan, TRANG_THAI_DOC_GIA.HOAT_DONG);
+    assert(docGiaTaiQuay.ngayHetHanThe !== undefined);
+    assert.strictEqual(docGiaTaiQuay.email, undefined);
+
+    // Kiểm tra độc giả tạo tại quầy có thể cung cấp thêm email & password nếu muốn (bắt buộc kèm registrationToken)
+    const emailLinh = 'linhdang@test.com';
+    const tokenLinh = await taoRegistrationTokenTest(emailLinh);
+    const docGiaTaiQuayCoTk = await DocGiaService.taoDocGiaTaiQuay({
+        registrationToken: tokenLinh,
+        hoLot: 'Đặng',
+        ten: 'Linh',
+        dienThoai: '0911223344',
+        email: emailLinh,
+        password: 'password123',
+        loaiDocGia: LOAI_DOC_GIA.SINHVIEN,
+    });
+    assert.strictEqual(docGiaTaiQuayCoTk.email, 'linhdang@test.com');
+    assert.strictEqual(docGiaTaiQuayCoTk.chuKyThanhToan, '6_thang_mien_phi');
 
     console.log('✅ tests/the-docgia.test.js PASSED ALL CHECKS!');
 }

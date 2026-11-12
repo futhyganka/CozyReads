@@ -1,5 +1,6 @@
 const assert = require('assert');
 const { connectTestDb, clearTestDb, disconnectTestDb } = require('./setup');
+const { taoRegistrationTokenTest } = require('./helpers');
 const {
     Sach,
     DocGia,
@@ -67,21 +68,29 @@ async function testRaSoatNghiepVu() {
         soDienThoai: '0902222222',
     });
 
-    const { docGia: reader1 } = await AuthService.dangKyDocGia({
-        email: 'reader1@test.com',
+    const emailR1 = 'reader1@test.com';
+    const tokenR1 = await taoRegistrationTokenTest(emailR1);
+    await AuthService.dangKyDocGia({
+        registrationToken: tokenR1,
+        email: emailR1,
         password: 'password123',
         hoLot: 'Nguyễn',
         ten: 'Một',
         dienThoai: '0903333333',
     });
+    const reader1 = await DocGia.findOne({ email: emailR1 });
 
-    const { docGia: reader2 } = await AuthService.dangKyDocGia({
-        email: 'reader2@test.com',
+    const emailR2 = 'reader2@test.com';
+    const tokenR2 = await taoRegistrationTokenTest(emailR2);
+    await AuthService.dangKyDocGia({
+        registrationToken: tokenR2,
+        email: emailR2,
         password: 'password123',
         hoLot: 'Trần',
         ten: 'Hai',
         dienThoai: '0904444444',
     });
+    const reader2 = await DocGia.findOne({ email: emailR2 });
 
     // Case 1: Reader không thể tự tạo phiếu mượn chính thức (thiếu MSNV_MUON sẽ bị từ chối)
     console.log('Case 1: Reader không thể tự tạo phiếu mượn chính thức nếu không có MSNV');

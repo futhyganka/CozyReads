@@ -1,5 +1,6 @@
 const assert = require('assert');
 const { connectTestDb, clearTestDb, disconnectTestDb } = require('./setup');
+const { taoRegistrationTokenTest } = require('./helpers');
 const {
     Sach,
     DocGia,
@@ -49,13 +50,17 @@ async function testThanhToan() {
         hoTen: 'Nhân Viên Thu Ngân',
         dienThoai: '0911222333',
     });
-    const { docGia } = await AuthService.dangKyDocGia({
-        email: 'dg_tt@test.com',
+    const emailDgTt = 'dg_tt@test.com';
+    const tokenDgTt = await taoRegistrationTokenTest(emailDgTt);
+    await AuthService.dangKyDocGia({
+        registrationToken: tokenDgTt,
+        email: emailDgTt,
         password: 'password123',
         hoLot: 'Đỗ',
         ten: 'Nam',
         dienThoai: '0966666666',
     });
+    const docGia = await DocGia.findOne({ email: emailDgTt });
 
     // Case 1: Báo mất sách -> Sinh khoản thanh toán bồi thường
     console.log(
@@ -108,6 +113,7 @@ async function testThanhToan() {
         'Case 4: Xác nhận thanh toán gia hạn thẻ (1 tháng = 30 ngày) & mở khóa thẻ',
     );
     docGia.trangThai = TRANG_THAI_DOC_GIA.TAM_KHOA;
+    docGia.ngayHetHanThe = new Date('2026-05-01T00:00:00Z');
     await docGia.save();
 
     const yeuCauGiaHan = await DocGiaService.taoKhoanThanhToanGiaHan({

@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const config = require('../config');
 const { DocGia, NhanVien } = require('../models');
+const OtpService = require('./otp.service');
 const ApiError = require('../api-error');
 const { ROLES, ROLE_PERMISSIONS } = require('../constants/permissions');
 const {
@@ -9,6 +10,7 @@ const {
     CHUC_VU_NHAN_VIEN,
     DIEM,
     TRANG_THAI_DOC_GIA,
+    GOI_GIA_HAN,
 } = require('../constants/business-rules');
 
 class AuthService {
@@ -163,25 +165,31 @@ class AuthService {
     }
 
     /**
-     * Đăng ký độc giả trực tuyến
+     * Bước 4: Hoàn tất đăng ký độc giả bằng registrationToken đã xác thực
      */
     static async dangKyDocGia(data) {
         const {
+            registrationToken,
             email,
             password,
             hoLot,
             ten,
             dienThoai,
             loaiDocGia = LOAI_DOC_GIA.DOCGIA_TUDO,
+            chuKyThanhToan = '1_thang',
             diaChi = '',
             ngaySinh = null,
             phai = 'khac',
             avatar = '',
         } = data;
 
-        if (!email) {
-            throw new ApiError(400, 'Email là bắt buộc đối với đăng ký độc giả trực tuyến.');
+        if (!registrationToken) {
+            throw new ApiError(
+                400,
+                'registrationToken là bắt buộc. Vui lòng xác thực email trước khi hoàn tất đăng ký.',
+            );
         }
+
         if (!password) {
             throw new ApiError(400, 'Mật khẩu là bắt buộc.');
         }
@@ -192,7 +200,14 @@ class AuthService {
             throw new ApiError(400, 'Họ lót và tên là bắt buộc.');
         }
 
-        const emailExists = await DocGia.findOne({ email: email.toLowerCase() });
+        // Tiêu thụ registrationToken (đảm bảo hợp lệ, chưa dùng, chưa hết hạn và đúng email)
+        const verifiedEmail = await OtpService.tieuThuRegistrationToken(
+            registrationToken,
+            email,
+        );
+
+        // Kiểm tra xem email có vừa bị đăng ký bởi request khác không
+        const emailExists = await DocGia.findOne({ email: verifiedEmail });
         if (emailExists) {
             throw new ApiError(400, 'Email này đã được sử dụng.');
         }
@@ -200,17 +215,31 @@ class AuthService {
         const hashedPassword = await this.bamMatKhau(password);
         const maDocGia = await this.taoMaDocGia();
 
+        // Tính ngày hết hạn thẻ ban đầu
+        let ngayHetHanThe = undefined;
+        if (loaiDocGia === LOAI_DOC_GIA.DOCGIA_TUDO) {
+            const thongTinGoi = GOI_GIA_HAN[chuKyThanhToan] || GOI_GIA_HAN['1_thang'];
+            const soNgay = thongTinGoi ? thongTinGoi.soNgay : 30;
+            ngayHetHanThe = new Date(Date.now() + soNgay * 24 * 60 * 60 * 1000);
+        } else {
+            const goiMienPhi = GOI_GIA_HAN['6_thang_mien_phi'] || GOI_GIA_HAN['6_thang'];
+            const soNgay = goiMienPhi ? goiMienPhi.soNgay : 180;
+            ngayHetHanThe = new Date(Date.now() + soNgay * 24 * 60 * 60 * 1000);
+        }
+
         const docGia = new DocGia({
             maDocGia,
-            hoLot,
-            ten,
+            hoLot: hoLot.trim(),
+            ten: ten.trim(),
             ngaySinh,
             phai,
-            diaChi,
-            dienThoai,
-            email: email.toLowerCase(),
+            diaChi: diaChi.trim(),
+            dienThoai: dienThoai.trim(),
+            email: verifiedEmail,
             password: hashedPassword,
             avatar,
+            chuKyThanhToan: loaiDocGia === LOAI_DOC_GIA.DOCGIA_TUDO ? chuKyThanhToan : '6_thang_mien_phi',
+            ngayHetHanThe,
             loaiDocGia,
             diemDocGia: DIEM.MAC_DINH,
             trangThaiTaiKhoan: TRANG_THAI_DOC_GIA.HOAT_DONG,
@@ -219,20 +248,13 @@ class AuthService {
 
         await docGia.save();
 
-        const token = this.taoToken({
-            _id: docGia._id,
+        // Yêu cầu: Trả về thông báo đăng ký thành công cùng mã độc giả, KHÔNG trả mật khẩu hoặc JWT token
+        return {
+            success: true,
+            message: 'Đăng ký tài khoản độc giả thành công.',
             maDocGia: docGia.maDocGia,
             email: docGia.email,
-            role: ROLES.DOCGIA,
-            maVaiTro: ROLES.DOCGIA,
-        });
-
-        const docGiaRes = docGia.toObject();
-        delete docGiaRes.password;
-
-        return {
-            docGia,
-            token,
+            hoTen: `${docGia.hoLot} ${docGia.ten}`.trim(),
         };
     }
 
@@ -257,7 +279,7 @@ class AuthService {
         }
 
         if (!docGia.password) {
-            throw new ApiError(403, 'Hồ sơ độc giả này chưa thiết lập mật khẩu đăng nhập trực tuyến.');
+            throw new ApiError(403, 'Hồ sơ độc giả này chưa thiết lập mật khẩu đăng nhập.');
         }
 
         const isMatch = await this.kiemTraMatKhau(password, docGia.password);
@@ -342,26 +364,6 @@ class AuthService {
             role,
             maVaiTro: role,
         };
-    }
-
-    /**
-     * Đăng nhập hợp nhất (hỗ trợ cả client cũ gọi /api/auth/dang-nhap)
-     */
-    static async dangNhap({ email, msnv, password, identifier }) {
-        if (msnv) {
-            return this.dangNhapNhanVien({ msnv, password });
-        }
-        if (identifier) {
-            const isMSNV = /^S[A-Z]\d{6}$/i.test(identifier.trim());
-            if (isMSNV) {
-                return this.dangNhapNhanVien({ msnv: identifier, password });
-            }
-            return this.dangNhapDocGia({ identifier, password });
-        }
-        if (email) {
-            return this.dangNhapDocGia({ email, password });
-        }
-        throw new ApiError(400, 'Vui lòng cung cấp thông tin đăng nhập.');
     }
 
     /**

@@ -6,6 +6,8 @@ const DanhMuc = require('./danhmuc.model');
 const NhaXuatBan = require('./nhaxuatban.model');
 const TheoDoiMuonSach = require('./theodoimuonsach.model');
 const KyThanhToan = require('./kythanhtoan.model');
+const OtpVerification = require('./otpverification.model');
+const RegistrationToken = require('./registrationtoken.model');
 
 module.exports = {
     DocGia,
@@ -17,4 +19,6 @@ module.exports = {
     TheoDoiMuonSach,
     KyThanhToan,
     ThanhToan: KyThanhToan,
+    OtpVerification,
+    RegistrationToken,
 };

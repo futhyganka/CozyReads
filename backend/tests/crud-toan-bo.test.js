@@ -1,5 +1,6 @@
 const assert = require('assert');
 const { connectTestDb, clearTestDb, disconnectTestDb } = require('./setup');
+const { taoRegistrationTokenTest } = require('./helpers');
 const {
     TacGia,
     DanhMuc,
@@ -139,14 +140,18 @@ async function testCRUDToanBo() {
     assert(dgQuay._id);
     assert.strictEqual(dgQuay.diemDocGia, 100);
 
+    const emailOnline = 'online_reader@gmail.com';
+    const tokenOnline = await taoRegistrationTokenTest(emailOnline);
     const dgOnline = await AuthService.dangKyDocGia({
-        email: 'online_reader@gmail.com',
+        registrationToken: tokenOnline,
+        email: emailOnline,
         password: 'onlinePassword123',
         hoLot: 'Ngô',
         ten: 'Bảo',
         dienThoai: '0977112233',
     });
-    assert(dgOnline.token);
+    assert(dgOnline.maDocGia);
+    const docGiaOnlineDoc = await DocGia.findOne({ email: emailOnline });
 
     const dgLogin = await AuthService.dangNhapDocGia({
         email: 'online_reader@gmail.com',
@@ -158,7 +163,7 @@ async function testCRUDToanBo() {
     // 7. THEODOIMUONSACH CRUD
     console.log('7. Kiểm thử CRUD THEODOIMUONSACH');
     const phieuMuon = await MuonTraService.taoPhieuMuon({
-        docGiaId: dgOnline.docGia._id,
+        docGiaId: docGiaOnlineDoc._id,
         sachId: sach._id,
         msnvMuonId: nv._id,
         soNgayMuon: 14,

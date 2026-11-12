@@ -1,6 +1,7 @@
 const { DocGia, TheoDoiMuonSach, KyThanhToan } = require('../models');
 const ApiError = require('../api-error');
 const AuthService = require('./auth.service');
+const OtpService = require('./otp.service');
 const {
     GOI_GIA_HAN,
     LOAI_DOC_GIA,
@@ -15,9 +16,12 @@ const {
 class DocGiaService {
     /**
      * Tạo độc giả tại quầy (bởi nhân viên / admin)
+     * Độc giả đăng ký trực tiếp tại quầy cũng bắt buộc phải xác thực email qua OTP (nếu có email) hoặc
+     * có thể hoàn tất bằng registrationToken đã xác thực.
      */
     static async taoDocGiaTaiQuay(data) {
         const {
+            registrationToken,
             hoLot,
             ten,
             dienThoai,
@@ -37,8 +41,20 @@ class DocGiaService {
             throw new ApiError(400, 'Số điện thoại độc giả là bắt buộc.');
         }
 
-        if (email) {
-            const emailTonTai = await DocGia.findOne({ email: email.toLowerCase() });
+        let verifiedEmail = undefined;
+
+        // Nếu cung cấp email hoặc registrationToken, bắt buộc phải xác thực email
+        if (registrationToken) {
+            verifiedEmail = await OtpService.tieuThuRegistrationToken(registrationToken, email);
+        } else if (email) {
+            throw new ApiError(
+                400,
+                'Độc giả đăng ký tại quầy có email bắt buộc phải xác thực email trước và cung cấp registrationToken.',
+            );
+        }
+
+        if (verifiedEmail) {
+            const emailTonTai = await DocGia.findOne({ email: verifiedEmail });
             if (emailTonTai) {
                 throw new ApiError(400, 'Email này đã tồn tại trong hệ thống.');
             }
@@ -50,17 +66,30 @@ class DocGiaService {
             hashedPassword = await AuthService.bamMatKhau(password);
         }
 
+        let ngayHetHanThe = undefined;
+        if (loaiDocGia === LOAI_DOC_GIA.DOCGIA_TUDO) {
+            const thongTinGoi = GOI_GIA_HAN[chuKyThanhToan] || GOI_GIA_HAN['1_thang'];
+            const soNgay = thongTinGoi ? thongTinGoi.soNgay : 30;
+            ngayHetHanThe = new Date(Date.now() + soNgay * 24 * 60 * 60 * 1000);
+        } else {
+            // Sinh viên, giảng viên, nhân viên: 180 ngày (6 tháng) mặc định
+            const goiMienPhi = GOI_GIA_HAN['6_thang_mien_phi'] || GOI_GIA_HAN['6_thang'];
+            const soNgay = goiMienPhi ? goiMienPhi.soNgay : 180;
+            ngayHetHanThe = new Date(Date.now() + soNgay * 24 * 60 * 60 * 1000);
+        }
+
         const docGia = new DocGia({
             maDocGia,
-            hoLot,
-            ten,
+            hoLot: hoLot.trim(),
+            ten: ten.trim(),
             ngaySinh,
             phai,
-            diaChi,
-            dienThoai,
-            email: email ? email.toLowerCase() : undefined,
+            diaChi: diaChi.trim(),
+            dienThoai: dienThoai.trim(),
+            email: verifiedEmail,
             password: hashedPassword,
-            chuKyThanhToan,
+            chuKyThanhToan: loaiDocGia === LOAI_DOC_GIA.DOCGIA_TUDO ? chuKyThanhToan : '6_thang_mien_phi',
+            ngayHetHanThe,
             loaiDocGia,
             diemDocGia: DIEM.MAC_DINH,
             trangThaiTaiKhoan: TRANG_THAI_DOC_GIA.HOAT_DONG,

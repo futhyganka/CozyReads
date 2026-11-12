@@ -1,14 +1,42 @@
 const AuthService = require('../services/auth.service');
+const OtpService = require('../services/otp.service');
 
 class AuthController {
+    // [POST] /api/auth/gui-otp-dang-ky
+    static async guiOtpDangKy(req, res, next) {
+        try {
+            const { email } = req.body;
+            const ketQua = await OtpService.guiOtpDangKy(email);
+            res.json({
+                success: true,
+                ...ketQua,
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    // [POST] /api/auth/xac-thuc-otp
+    static async xacThucOtp(req, res, next) {
+        try {
+            const { email, otp } = req.body;
+            const ketQua = await OtpService.xacThucOtp(email, otp);
+            res.json({
+                success: true,
+                ...ketQua,
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+
     // [POST] /api/auth/dang-ky-doc-gia
     static async dangKyDocGia(req, res, next) {
         try {
             const ketQua = await AuthService.dangKyDocGia(req.body);
             res.status(201).json({
                 success: true,
-                message: 'Đăng ký tài khoản độc giả thành công.',
-                data: ketQua,
+                ...ketQua,
             });
         } catch (error) {
             next(error);
@@ -36,20 +64,6 @@ class AuthController {
             res.json({
                 success: true,
                 message: 'Đăng nhập nhân viên thành công.',
-                data: ketQua,
-            });
-        } catch (error) {
-            next(error);
-        }
-    }
-
-    // [POST] /api/auth/dang-nhap (chung)
-    static async dangNhap(req, res, next) {
-        try {
-            const ketQua = await AuthService.dangNhap(req.body);
-            res.json({
-                success: true,
-                message: 'Đăng nhập thành công.',
                 data: ketQua,
             });
         } catch (error) {

@@ -1,5 +1,6 @@
 const assert = require('assert');
 const { connectTestDb, clearTestDb, disconnectTestDb } = require('./setup');
+const { taoRegistrationTokenTest } = require('./helpers');
 const AuthService = require('../src/services/auth.service');
 const { PERMISSIONS, ROLES } = require('../src/constants/permissions');
 const { TRANG_THAI_DOC_GIA } = require('../src/constants/business-rules');
@@ -50,16 +51,20 @@ async function testPhanQuyen() {
     console.log(
         'Case 5: Kiểm tra đăng nhập với mật khẩu băm bcrypt & kiểm tra trạng thái thẻ độc giả',
     );
-    const { docGia } = await AuthService.dangKyDocGia({
-        email: 'auth_test@gmail.com',
+    const emailTest = 'auth_test@gmail.com';
+    const regToken = await taoRegistrationTokenTest(emailTest);
+    const resDangKy = await AuthService.dangKyDocGia({
+        registrationToken: regToken,
+        email: emailTest,
         password: 'mySecretPassword',
         hoLot: 'Vũ',
         ten: 'Hải',
         dienThoai: '0988776655',
     });
+    const docGia = await DocGia.findOne({ email: emailTest });
 
     // Đăng nhập thành công với mật khẩu đúng
-    const loginOk = await AuthService.dangNhap({
+    const loginOk = await AuthService.dangNhapDocGia({
         email: 'auth_test@gmail.com',
         password: 'mySecretPassword',
     });
@@ -68,7 +73,7 @@ async function testPhanQuyen() {
     // Đăng nhập thất bại khi sai mật khẩu
     let biSaiMatKhau = false;
     try {
-        await AuthService.dangNhap({
+        await AuthService.dangNhapDocGia({
             email: 'auth_test@gmail.com',
             password: 'wrongPassword',
         });
@@ -83,7 +88,7 @@ async function testPhanQuyen() {
     });
     let biChanDangNhapKhoaThe = false;
     try {
-        await AuthService.dangNhap({
+        await AuthService.dangNhapDocGia({
             email: 'auth_test@gmail.com',
             password: 'mySecretPassword',
         });
@@ -100,7 +105,7 @@ async function testPhanQuyen() {
     });
     let biChanViTotNghiep = false;
     try {
-        await AuthService.dangNhap({
+        await AuthService.dangNhapDocGia({
             email: 'auth_test@gmail.com',
             password: 'mySecretPassword',
         });

@@ -1,5 +1,6 @@
 const assert = require('assert');
 const { connectTestDb, clearTestDb, disconnectTestDb } = require('./setup');
+const { taoRegistrationTokenTest } = require('./helpers');
 const {
     Sach,
     DocGia,
@@ -67,13 +68,17 @@ async function testMuonTra() {
         dienThoai: '0901234567',
     });
 
-    const { docGia } = await AuthService.dangKyDocGia({
-        email: 'dg1@cozyreads.com',
+    const emailDg1 = 'dg1@cozyreads.com';
+    const regTokenDg1 = await taoRegistrationTokenTest(emailDg1);
+    await AuthService.dangKyDocGia({
+        registrationToken: regTokenDg1,
+        email: emailDg1,
         password: 'password123',
         hoLot: 'Trần',
         ten: 'Văn An',
         dienThoai: '0912345678',
     });
+    const docGia = await DocGia.findOne({ email: emailDg1 });
 
     // Kiểm tra định dạng maDocGia (10 ký tự: DG + 1 chữ + 7 số) và msnv (8 ký tự: S + 1 chữ + 6 số)
     console.log(

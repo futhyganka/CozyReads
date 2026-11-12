@@ -1,5 +1,6 @@
 const assert = require('assert');
 const { connectTestDb, clearTestDb, disconnectTestDb } = require('./setup');
+const { taoRegistrationTokenTest } = require('./helpers');
 const {
     Sach,
     DocGia,
@@ -53,21 +54,29 @@ async function testKiemTraCuoiCung() {
         soDienThoai: '0901234567',
     });
 
-    const { docGia: dg1 } = await AuthService.dangKyDocGia({
-        email: 'dg1_final@gmail.com',
+    const emailDg1Final = 'dg1_final@gmail.com';
+    const tokenDg1Final = await taoRegistrationTokenTest(emailDg1Final);
+    await AuthService.dangKyDocGia({
+        registrationToken: tokenDg1Final,
+        email: emailDg1Final,
         password: 'password123',
         hoLot: 'Lê',
         ten: 'A',
         dienThoai: '0911111111',
     });
+    const dg1 = await DocGia.findOne({ email: emailDg1Final });
 
-    const { docGia: dg2 } = await AuthService.dangKyDocGia({
-        email: 'dg2_final@gmail.com',
+    const emailDg2Final = 'dg2_final@gmail.com';
+    const tokenDg2Final = await taoRegistrationTokenTest(emailDg2Final);
+    await AuthService.dangKyDocGia({
+        registrationToken: tokenDg2Final,
+        email: emailDg2Final,
         password: 'password123',
         hoLot: 'Phạm',
         ten: 'B',
         dienThoai: '0922222222',
     });
+    const dg2 = await DocGia.findOne({ email: emailDg2Final });
 
     // MỤC 1 & 2: Chống giữ sách vượt tồn kho & Chống hoàn trả tồn kho trùng lặp
     console.log('Case 1: Chống giữ sách vượt tồn kho (chỉ còn 1 quyển)');
