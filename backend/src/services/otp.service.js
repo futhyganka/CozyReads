@@ -3,6 +3,7 @@ const config = require('../config');
 const ApiError = require('../api-error');
 const { DocGia, OtpVerification, RegistrationToken } = require('../models');
 const MailService = require('./mail.service');
+const { REGEX } = require('../constants/business-rules');
 
 class OtpService {
     /**
@@ -16,7 +17,7 @@ class OtpService {
     }
 
     /**
-     * Băm registrationToken bằng SHA-256
+     * Băm token bằng SHA-256
      */
     static hashToken(token) {
         return crypto.createHash('sha256').update(token).digest('hex');
@@ -34,30 +35,25 @@ class OtpService {
      */
     static kiemTraDinhDangEmail(email) {
         if (!email || typeof email !== 'string') return false;
-        const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return re.test(email.trim());
+        return REGEX.EMAIL.test(email.trim());
     }
 
     /**
-     * Bước 1 & 2: Gửi OTP xác thực email
+     * Kiểm tra định dạng số điện thoại Việt Nam hợp lệ (10 số, bắt đầu bằng 03, 05, 07, 08, 09)
      */
-    static async guiOtpDangKy(email) {
-        if (!email || !this.kiemTraDinhDangEmail(email)) {
-            throw new ApiError(400, 'Địa chỉ email không hợp lệ.');
-        }
+    static kiemTraSoDienThoai(dienThoai) {
+        if (!dienThoai || typeof dienThoai !== 'string') return false;
+        return REGEX.SO_DIEN_THOAI.test(dienThoai.trim());
+    }
 
-        const normalizedEmail = email.trim().toLowerCase();
-
-        // 1. Kiểm tra email đã tồn tại trong hệ thống chưa
-        const docGiaDaTonTai = await DocGia.findOne({ email: normalizedEmail });
-        if (docGiaDaTonTai) {
-            throw new ApiError(400, 'Email này đã được đăng ký tài khoản trong hệ thống.');
-        }
-
-        // 2. Kiểm tra Rate Limit (tối thiểu 60 giây giữa các lần gửi)
+    /**
+     * Hàm dùng chung: Tạo OTP, kiểm tra rate limit và gửi email
+     */
+    static async guiOtpChung(normalizedEmail, mucDich = 'dangKy') {
         const banGhiCu = await OtpVerification.findOne({ email: normalizedEmail });
         const now = new Date();
 
+        // Kiểm tra Rate Limit (tối thiểu 60 giây giữa các lần gửi)
         if (banGhiCu) {
             const timeSinceLastSent = (now.getTime() - new Date(banGhiCu.lastSentAt).getTime()) / 1000;
             if (timeSinceLastSent < config.otp.resendCooldownSeconds) {
@@ -69,12 +65,10 @@ class OtpService {
             }
         }
 
-        // 3. Tạo OTP ngẫu nhiên 6 chữ số và băm HMAC
         const otp = this.taoOtp6So();
         const otpHash = this.hashOtp(normalizedEmail, otp);
         const expiresAt = new Date(now.getTime() + config.otp.expiryMinutes * 60 * 1000);
 
-        // 4. Lưu / cập nhật bản ghi OTP trong MongoDB (vô hiệu hóa OTP cũ)
         await OtpVerification.findOneAndUpdate(
             { email: normalizedEmail },
             {
@@ -88,9 +82,8 @@ class OtpService {
             { upsert: true, returnDocument: 'after' },
         );
 
-        // 5. Gửi email qua Nodemailer
         try {
-            await MailService.guiEmailOtp(normalizedEmail, otp);
+            await MailService.guiEmailOtp(normalizedEmail, otp, mucDich);
         } catch (error) {
             console.error('[MAIL ERROR] Gửi OTP thất bại:', error.message);
             throw new ApiError(500, 'Không thể gửi email OTP, vui lòng thử lại sau.');
@@ -100,12 +93,71 @@ class OtpService {
             email: normalizedEmail,
             message: 'Mã xác thực OTP đã được gửi đến email của bạn. Vui lòng kiểm tra hộp thư.',
             thoiGianHieuLucPhut: config.otp.expiryMinutes,
-            // KHÔNG TRẢ VỀ OTP
         };
     }
 
     /**
-     * Bước 3: Xác thực OTP và cấp registrationToken dùng 1 lần
+     * Bước 1 & 2: Gửi OTP xác thực email ĐĂNG KÝ
+     */
+    static async guiOtpDangKy(email) {
+        if (!email || !this.kiemTraDinhDangEmail(email)) {
+            throw new ApiError(400, 'Địa chỉ email không hợp lệ.');
+        }
+
+        const normalizedEmail = email.trim().toLowerCase();
+
+        // Kiểm tra email đã tồn tại trong hệ thống chưa (Đăng ký -> không được trùng)
+        const docGiaDaTonTai = await DocGia.findOne({ email: normalizedEmail });
+        if (docGiaDaTonTai) {
+            throw new ApiError(400, 'Email này đã được đăng ký tài khoản trong hệ thống.');
+        }
+
+        return this.guiOtpChung(normalizedEmail, 'dangKy');
+    }
+
+    /**
+     * Gửi OTP xác thực ĐỔI EMAIL MỚI (chỉ gửi tới email mới chưa từng đăng ký)
+     */
+    static async guiOtpDoiEmail(emailMoi, docGiaIdHienTai) {
+        if (!emailMoi || !this.kiemTraDinhDangEmail(emailMoi)) {
+            throw new ApiError(400, 'Địa chỉ email mới không hợp lệ.');
+        }
+
+        const normalizedEmail = emailMoi.trim().toLowerCase();
+
+        // Kiểm tra xem email mới này có bị ai khác dùng chưa
+        const query = { email: normalizedEmail };
+        if (docGiaIdHienTai) {
+            query._id = { $ne: docGiaIdHienTai };
+        }
+        const emailExists = await DocGia.findOne(query);
+        if (emailExists) {
+            throw new ApiError(400, 'Email mới này đã được sử dụng bởi một tài khoản khác.');
+        }
+
+        return this.guiOtpChung(normalizedEmail, 'doiEmail');
+    }
+
+    /**
+     * Gửi OTP QUÊN MẬT KHẨU (chỉ gửi tới email ĐÃ TỒN TẠI trong hệ thống)
+     */
+    static async guiOtpQuenMatKhau(email) {
+        if (!email || !this.kiemTraDinhDangEmail(email)) {
+            throw new ApiError(400, 'Địa chỉ email không hợp lệ.');
+        }
+
+        const normalizedEmail = email.trim().toLowerCase();
+
+        const docGia = await DocGia.findOne({ email: normalizedEmail });
+        if (!docGia) {
+            throw new ApiError(404, 'Không tìm thấy tài khoản độc giả nào gắn với email này.');
+        }
+
+        return this.guiOtpChung(normalizedEmail, 'quenMatKhau');
+    }
+
+    /**
+     * Bước 3: Xác thực OTP và cấp verificationToken dùng 1 lần (dùng cho đăng ký, đổi email, quên mật khẩu)
      */
     static async xacThucOtp(email, otp) {
         if (!email || !otp) {
@@ -151,14 +203,14 @@ class OtpService {
         // OTP chính xác -> Xóa bản ghi OTP để vô hiệu hóa ngay lập tức
         await OtpVerification.deleteOne({ _id: banGhiOtp._id });
 
-        // Cấp registrationToken ngắn hạn (15 phút), ngẫu nhiên 64 ký tự hex
-        const rawToken = crypto.randomBytes(32).toString('hex');
+        // Cấp verificationToken (registrationToken/resetToken) ngắn hạn (15 phút), ngẫu nhiên 64 ký tự hex
+        const rawToken = crypto.randomBytes(32).toString('hex'); // tạo ra token
         const tokenHash = this.hashToken(rawToken);
         const tokenExpiresAt = new Date(
-            now.getTime() + config.otp.registrationTokenExpiryMinutes * 60 * 1000,
+            now.getTime() + config.otp.registrationTokenExpiryMinutes * 60 * 1000, // tính thời gian hết hạn của token
         );
 
-        // Vô hiệu hóa các registrationToken cũ của email này nếu có
+        // Vô hiệu hóa các token cũ của email này nếu có
         await RegistrationToken.deleteMany({ email: normalizedEmail });
 
         await RegistrationToken.create({
@@ -171,37 +223,38 @@ class OtpService {
         return {
             email: normalizedEmail,
             registrationToken: rawToken,
-            message: 'Xác thực email thành công. Vui lòng hoàn tất thông tin đăng ký.',
+            verificationToken: rawToken,
+            message: 'Xác thực email thành công.',
             expiresInMinutes: config.otp.registrationTokenExpiryMinutes,
         };
     }
 
     /**
-     * Kiểm tra và tiêu thụ registrationToken (chỉ dùng 1 lần)
+     * Tiêu thụ token xác thực dùng 1 lần (dùng cho đăng ký, đổi email, đặt lại mật khẩu)
      */
     static async tieuThuRegistrationToken(registrationToken, expectedEmail = null) {
         if (!registrationToken) {
-            throw new ApiError(400, 'Mã registrationToken là bắt buộc để hoàn tất đăng ký.');
+            throw new ApiError(400, 'Mã xác thực token là bắt buộc.');
         }
 
         const tokenHash = this.hashToken(registrationToken.trim());
         const tokenDoc = await RegistrationToken.findOne({ tokenHash });
 
         if (!tokenDoc) {
-            throw new ApiError(400, 'RegistrationToken không hợp lệ hoặc không tồn tại.');
+            throw new ApiError(400, 'Token xác thực không hợp lệ hoặc không tồn tại.');
         }
 
         if (tokenDoc.isUsed) {
-            throw new ApiError(400, 'RegistrationToken này đã được sử dụng.');
+            throw new ApiError(400, 'Token xác thực này đã được sử dụng.');
         }
 
         const now = new Date();
         if (now > tokenDoc.expiresAt) {
-            throw new ApiError(400, 'RegistrationToken đã hết hạn. Vui lòng xác thực lại email.');
+            throw new ApiError(400, 'Token xác thực đã hết hạn. Vui lòng gửi lại OTP xác thực.');
         }
 
         if (expectedEmail && tokenDoc.email !== expectedEmail.trim().toLowerCase()) {
-            throw new ApiError(400, 'RegistrationToken không khớp với email đăng ký.');
+            throw new ApiError(400, 'Token xác thực không khớp với email được cung cấp.');
         }
 
         // Đánh dấu đã sử dụng (atomic update để chống race condition)
@@ -212,7 +265,7 @@ class OtpService {
         );
 
         if (!updated) {
-            throw new ApiError(400, 'RegistrationToken đã được sử dụng bởi một yêu cầu khác.');
+            throw new ApiError(400, 'Token xác thực đã được sử dụng bởi một yêu cầu khác.');
         }
 
         return updated.email;

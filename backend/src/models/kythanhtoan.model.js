@@ -74,6 +74,14 @@ const kyThanhToanSchema = new Schema(
             type: String,
             default: '',
         },
+        lanGuiMailCuoi: {
+            type: Date,
+            default: null,
+        },
+        soLanNhacNho: {
+            type: Number,
+            default: 0,
+        },
     },
     {
         timestamps: true,

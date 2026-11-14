@@ -1,5 +1,6 @@
 const { KyThanhToan, TheoDoiMuonSach, DocGia, NhanVien } = require('../models');
 const ApiError = require('../api-error');
+const MailService = require('./mail.service');
 const {
     LOAI_THANH_TOAN,
     TRANG_THAI_THANH_TOAN,
@@ -294,6 +295,65 @@ class KyThanhToanService {
 
         await KyThanhToan.findByIdAndDelete(id);
         return { success: true, message: 'Đã xóa giao dịch thanh toán thành công.' };
+    }
+
+    /**
+     * Quét và nhắc nhở các khoản bồi thường mất/hỏng sách chưa thanh toán (sau 3 ngày và sau 7 ngày)
+     */
+    static async quetVaNhacNhoBoiThuongMatSach(thoiDiemHienTai = new Date()) {
+        const now = new Date(thoiDiemHienTai);
+        const danhSachCho = await KyThanhToan.find({
+            loai: LOAI_THANH_TOAN.PHI_PHAT_MAT_SACH,
+            trangThai: TRANG_THAI_THANH_TOAN.CHO_XAC_NHAN,
+        }).populate('maDocGia');
+
+        const ketQua = [];
+
+        for (const tt of danhSachCho) {
+            const docGia = tt.maDocGia;
+            if (!docGia || !docGia.email) continue;
+
+            const ngayTao = tt.ngayTao ? new Date(tt.ngayTao) : new Date(tt.createdAt || now);
+            const soNgayTroiQua = Math.floor(
+                (now.getTime() - ngayTao.getTime()) / (1000 * 60 * 60 * 24),
+            );
+
+            // Mốc 3 ngày (nhắc lần 1) và mốc 7 ngày (nhắc lần 2)
+            const daNhacLan1 = (tt.soLanNhacNho || 0) >= 2;
+            const daNhacLan2 = (tt.soLanNhacNho || 0) >= 3;
+
+            let canNhac = false;
+            if (soNgayTroiQua >= 3 && !daNhacLan1) {
+                canNhac = true;
+                tt.soLanNhacNho = 2;
+            } else if (soNgayTroiQua >= 7 && !daNhacLan2) {
+                canNhac = true;
+                tt.soLanNhacNho = 3;
+            }
+
+            if (canNhac) {
+                const tenSach = tt.ghiChu || 'Sách mượn thư viện';
+                MailService.guiEmailBoiThuongMatSach(docGia.email, {
+                    hoTen: `${docGia.hoLot || ''} ${docGia.ten || ''}`.trim(),
+                    maThanhToan: tt.maThanhToan,
+                    tenSach,
+                    soTien: tt.soTien,
+                    loaiNhac: 'nhac_nho',
+                }).catch(err => console.error('Lỗi gửi mail nhắc bồi thường:', err.message));
+
+                tt.lanGuiMailCuoi = now;
+                await tt.save();
+
+                ketQua.push({
+                    maThanhToan: tt.maThanhToan,
+                    docGiaId: docGia._id,
+                    email: docGia.email,
+                    soLanNhacNho: tt.soLanNhacNho,
+                });
+            }
+        }
+
+        return ketQua;
     }
 }
 

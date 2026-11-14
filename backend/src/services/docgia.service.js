@@ -2,6 +2,7 @@ const { DocGia, TheoDoiMuonSach, KyThanhToan } = require('../models');
 const ApiError = require('../api-error');
 const AuthService = require('./auth.service');
 const OtpService = require('./otp.service');
+const MailService = require('./mail.service');
 const {
     GOI_GIA_HAN,
     LOAI_DOC_GIA,
@@ -10,7 +11,9 @@ const {
     SO_NGAY_AN_HAN_GIA_HAN,
     LOAI_THANH_TOAN,
     TRANG_THAI_THANH_TOAN,
+    TRANG_THAI_MUON,
     DIEM,
+    REGEX,
 } = require('../constants/business-rules');
 
 class DocGiaService {
@@ -39,6 +42,12 @@ class DocGiaService {
         }
         if (!dienThoai || !dienThoai.trim()) {
             throw new ApiError(400, 'Số điện thoại độc giả là bắt buộc.');
+        }
+        if (!REGEX.SO_DIEN_THOAI.test(dienThoai.trim())) {
+            throw new ApiError(
+                400,
+                'Số điện thoại không hợp lệ. Vui lòng nhập số điện thoại gồm 10 chữ số (bắt đầu bằng 03, 05, 07, 08, 09).',
+            );
         }
 
         let verifiedEmail = undefined;
@@ -155,7 +164,9 @@ class DocGiaService {
     }
 
     /**
-     * Cập nhật thông tin độc giả
+     * Cập nhật thông tin độc giả (Chỉ cho phép cập nhật thông tin cá nhân hợp lệ)
+     * Các trường nhạy cảm: maDocGia, password, diemDocGia, trangThaiTaiKhoan, ngayHetHanThe...
+     * TUYỆT ĐỐI không cho phép sửa qua hàm này để đảm bảo an toàn phân quyền.
      */
     static async capNhatDocGia(id, updateData) {
         const docGia = await DocGia.findById(id);
@@ -163,26 +174,76 @@ class DocGiaService {
             throw new ApiError(404, 'Không tìm thấy độc giả.');
         }
 
-        // Không cho phép đổi maDocGia
-        delete updateData.maDocGia;
-        delete updateData.password; // Đổi mật khẩu qua hàm riêng
+        // 1. Xử lý cập nhật Email (nếu có yêu cầu đổi email)
+        if (updateData.email && updateData.email.trim().toLowerCase() !== docGia.email) {
+            if (!OtpService.kiemTraDinhDangEmail(updateData.email)) {
+                throw new ApiError(400, 'Địa chỉ email mới không hợp lệ.');
+            }
+            // Khi đổi email mới: bắt buộc phải có verificationToken đã được xác thực OTP
+            const tokenSuDung = updateData.verificationToken || updateData.registrationToken;
+            if (!tokenSuDung) {
+                throw new ApiError(
+                    400,
+                    'Thay đổi email yêu cầu phải xác thực OTP trên email mới trước. Vui lòng cung cấp verificationToken.',
+                );
+            }
 
-        if (updateData.email && updateData.email !== docGia.email) {
+            const verifiedEmail = await OtpService.tieuThuRegistrationToken(
+                tokenSuDung,
+                updateData.email,
+            );
+
             const emailExists = await DocGia.findOne({
-                email: updateData.email.toLowerCase(),
+                email: verifiedEmail.toLowerCase(),
                 _id: { $ne: id },
             });
             if (emailExists) {
-                throw new ApiError(400, 'Email này đã được sử dụng.');
+                throw new ApiError(400, 'Email này đã được sử dụng bởi tài khoản khác.');
             }
-            updateData.email = updateData.email.toLowerCase();
+            docGia.email = verifiedEmail.toLowerCase();
         }
 
-        if (updateData.trangThai) {
-            updateData.trangThaiTaiKhoan = updateData.trangThai;
+        // 2. Lọc danh sách các trường thông tin cá nhân được phép cập nhật (Whitelist)
+        if (updateData.hoLot !== undefined) {
+            if (!updateData.hoLot.trim()) throw new ApiError(400, 'Họ lót không được để trống.');
+            docGia.hoLot = updateData.hoLot.trim();
         }
 
-        Object.assign(docGia, updateData);
+        if (updateData.ten !== undefined) {
+            if (!updateData.ten.trim()) throw new ApiError(400, 'Tên không được để trống.');
+            docGia.ten = updateData.ten.trim();
+        }
+
+        if (updateData.dienThoai !== undefined) {
+            if (!updateData.dienThoai.trim()) throw new ApiError(400, 'Số điện thoại không được để trống.');
+            if (!REGEX.SO_DIEN_THOAI.test(updateData.dienThoai.trim())) {
+                throw new ApiError(
+                    400,
+                    'Số điện thoại không hợp lệ. Vui lòng nhập số điện thoại gồm 10 chữ số (bắt đầu bằng 03, 05, 07, 08, 09).',
+                );
+            }
+            docGia.dienThoai = updateData.dienThoai.trim();
+        }
+
+        if (updateData.diaChi !== undefined) {
+            docGia.diaChi = updateData.diaChi.trim();
+        }
+
+        if (updateData.ngaySinh !== undefined) {
+            docGia.ngaySinh = updateData.ngaySinh ? new Date(updateData.ngaySinh) : null;
+        }
+
+        if (updateData.phai !== undefined) {
+            if (!['nam', 'nu', 'khac'].includes(updateData.phai)) {
+                throw new ApiError(400, 'Giới tính không hợp lệ (chọn nam, nu, khac).');
+            }
+            docGia.phai = updateData.phai;
+        }
+
+        if (updateData.avatar !== undefined) {
+            docGia.avatar = updateData.avatar;
+        }
+
         await docGia.save();
 
         const docGiaRes = docGia.toObject();
@@ -388,6 +449,24 @@ class DocGiaService {
                         trangThai: TRANG_THAI_THANH_TOAN.CHO_XAC_NHAN,
                         ghiChu: `Hệ thống tự động tạo khoản gia hạn: ${thongTinGoi.tenGoi}`,
                     });
+
+                    if (docGia.email) {
+                        const hanChot = new Date(
+                            now.getTime() + SO_NGAY_AN_HAN_GIA_HAN * 24 * 60 * 60 * 1000,
+                        ).toLocaleDateString('vi-VN');
+                        MailService.guiEmailGiaHanThe(docGia.email, {
+                            hoTen: `${docGia.hoLot || ''} ${docGia.ten || ''}`.trim(),
+                            maThanhToan,
+                            tenGoi: thongTinGoi.tenGoi,
+                            soTien: thongTinGoi.gia,
+                            hanChot,
+                            loaiNhac: 'tao_moi',
+                        }).catch(err => console.error('Lỗi gửi mail gia hạn:', err.message));
+
+                        thanhToanMoi.lanGuiMailCuoi = now;
+                        thanhToanMoi.soLanNhacNho = 1;
+                    }
+
                     await thanhToanMoi.save();
 
                     ketQua.push({
@@ -464,10 +543,73 @@ class DocGiaService {
                     ngayHetHan.getTime() +
                         SO_NGAY_AN_HAN_GIA_HAN * 24 * 60 * 60 * 1000,
                 );
+                const mocCanhBao = new Date(
+                    ngayHetHan.getTime() + 5 * 24 * 60 * 60 * 1000,
+                );
+
+                // Cảnh báo trước khi khóa 2 ngày (ngày thứ 5 của đợt ân hạn)
+                if (now >= mocCanhBao && now <= mocKhoaThe && (tt.soLanNhacNho || 0) < 2) {
+                    if (docGia.email) {
+                        const hanChot = mocKhoaThe.toLocaleDateString('vi-VN');
+                        MailService.guiEmailGiaHanThe(docGia.email, {
+                            hoTen: `${docGia.hoLot || ''} ${docGia.ten || ''}`.trim(),
+                            maThanhToan: tt.maThanhToan,
+                            tenGoi: GOI_GIA_HAN[tt.goiGiaHan]?.tenGoi || 'Gói gia hạn',
+                            soTien: tt.soTien,
+                            hanChot,
+                            loaiNhac: 'sap_khoa_the',
+                        }).catch(err => console.error('Lỗi gửi mail cảnh báo gia hạn:', err.message));
+
+                        tt.lanGuiMailCuoi = now;
+                        tt.soLanNhacNho = 2;
+                        await tt.save();
+                    }
+                }
 
                 if (now > mocKhoaThe) {
                     docGia.trangThaiTaiKhoan = TRANG_THAI_DOC_GIA.TAM_KHOA;
                     await docGia.save();
+
+                    // Tìm sách độc giả đang giữ (đang mượn, quá hạn, hoặc báo mất chưa đền)
+                    const sachDangGiu = await TheoDoiMuonSach.find({
+                        maDocGia: docGia._id,
+                        trangThai: {
+                            $in: [
+                                TRANG_THAI_MUON.DANG_MUON,
+                                TRANG_THAI_MUON.QUA_HAN,
+                                TRANG_THAI_MUON.DA_MAT,
+                            ],
+                        },
+                    }).populate('maSach');
+                    const dsSachDangGiu = sachDangGiu.map(s => ({
+                        tenSach: s.maSach?.tenSach || 'Sách thư viện',
+                        ngayHenTra: s.ngayHenTra
+                            ? new Date(s.ngayHenTra).toLocaleDateString('vi-VN')
+                            : 'Không xác định',
+                    }));
+
+                    // Tìm các khoản nợ cần thanh toán
+                    const cacKhoanNo = await KyThanhToan.find({
+                        maDocGia: docGia._id,
+                        trangThai: TRANG_THAI_THANH_TOAN.CHO_XAC_NHAN,
+                    });
+                    const dsKhoanNo = cacKhoanNo.map(k => ({
+                        loai: k.loai,
+                        soTien: k.soTien,
+                        maThanhToan: k.maThanhToan,
+                        ghiChu: k.ghiChu,
+                    }));
+                    const tongTienNo = cacKhoanNo.reduce((sum, k) => sum + k.soTien, 0);
+
+                    if (docGia.email) {
+                        MailService.guiEmailKhoaThe(docGia.email, {
+                            hoTen: `${docGia.hoLot || ''} ${docGia.ten || ''}`.trim(),
+                            lyDo: 'Chưa thanh toán khoản gia hạn thẻ và đã quá hạn ân hạn 7 ngày.',
+                            dsSachDangGiu,
+                            dsKhoanNo,
+                            tongTienNo,
+                        }).catch(err => console.error('Lỗi gửi mail khóa thẻ:', err.message));
+                    }
 
                     daXuLyDocGiaIds.add(docGia._id.toString());
                     ketQua.push({
@@ -476,6 +618,8 @@ class DocGiaService {
                         ngayHetHanThe: docGia.ngayHetHanThe,
                         maThanhToanNo: tt.maThanhToan,
                         lyDo: 'Chưa thanh toán khoản gia hạn và đã quá hạn thẻ hơn 7 ngày.',
+                        dsSachDangGiu,
+                        tongTienNo,
                     });
                 }
             }

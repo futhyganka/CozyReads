@@ -7,6 +7,7 @@ const {
 } = require('../models');
 const ApiError = require('../api-error');
 const DiemService = require('./diem.service');
+const MailService = require('./mail.service');
 const {
     TRANG_THAI_MUON,
     TRANG_THAI_DOC_GIA,
@@ -78,7 +79,7 @@ class MuonTraService {
         if (soSachToiDa === 0) {
             throw new ApiError(
                 400,
-                `Điểm độc giả hiện tại (${docGia.diemDocGia}đ) dưới 10 điểm. Không được phép mượn sách.`,
+                `Điểm độc giả hiện tại (${docGia.diemDocGia}đ) từ 10 điểm trở xuống. Không được phép mượn sách.`,
             );
         }
 
@@ -473,6 +474,20 @@ class MuonTraService {
             trangThai: TRANG_THAI_THANH_TOAN.CHO_XAC_NHAN,
             ghiChu: `Bồi thường mất/hỏng sách "${sachObj?.tenSach || 'Sách'}" (Đơn giá: ${giaSach}đ)`,
         });
+
+        if (docGia && docGia.email) {
+            MailService.guiEmailBoiThuongMatSach(docGia.email, {
+                hoTen: `${docGia.hoLot || ''} ${docGia.ten || ''}`.trim(),
+                maThanhToan: maThanhToanBoiThuong,
+                tenSach: sachObj?.tenSach || 'Sách thư viện',
+                soTien: giaSach,
+                loaiNhac: 'tao_moi',
+            }).catch(err => console.error('Lỗi gửi mail báo mất sách:', err.message));
+
+            thanhToan.lanGuiMailCuoi = new Date();
+            thanhToan.soLanNhacNho = 1;
+        }
+
         await thanhToan.save();
 
         await DiemService.kiemTraVaXuLyVuotHanMucMuon(phieuMuon.maDocGia);

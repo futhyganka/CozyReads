@@ -17,4 +17,10 @@ router.post('/dang-nhap-doc-gia', AuthController.dangNhapDocGia);
 // Đăng nhập nhân viên
 router.post('/dang-nhap-nhan-vien', AuthController.dangNhapNhanVien);
 
+// Quên mật khẩu: Gửi OTP
+router.post('/gui-otp-quen-mat-khau', AuthController.guiOtpQuenMatKhau);
+
+// Quên mật khẩu: Đặt lại mật khẩu mới bằng verificationToken
+router.post('/dat-lai-mat-khau', AuthController.datLaiMatKhau);
+
 module.exports = router;

@@ -23,8 +23,8 @@ const config = {
         expiresIn: process.env.JWT_EXPIRES_IN || '7d',
     },
     email: {
-        user: process.env.EMAIL_USER || 'ngantuyen1223@gmail.com',
-        pass: process.env.EMAIL_PASS || 'lhyvbtsygoutvvsw',
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
     },
     otp: {
         secret: process.env.OTP_SECRET || 'cozyreads_otp_hmac_secret_key_2026',

@@ -1,7 +1,7 @@
 const { NhanVien, TheoDoiMuonSach, KyThanhToan } = require('../models');
 const ApiError = require('../api-error');
 const AuthService = require('./auth.service');
-const { CHUC_VU_NHAN_VIEN } = require('../constants/business-rules');
+const { CHUC_VU_NHAN_VIEN, REGEX } = require('../constants/business-rules');
 
 class NhanVienService {
     /**
@@ -30,6 +30,12 @@ class NhanVienService {
         }
         if (!sdt || !sdt.trim()) {
             throw new ApiError(400, 'Số điện thoại nhân viên là bắt buộc.');
+        }
+        if (!REGEX.SO_DIEN_THOAI.test(sdt.trim())) {
+            throw new ApiError(
+                400,
+                'Số điện thoại không hợp lệ. Vui lòng nhập số điện thoại gồm 10 chữ số (bắt đầu bằng 03, 05, 07, 08, 09).',
+            );
         }
 
         const msnv = await AuthService.taoMaNhanVien();
@@ -123,6 +129,16 @@ class NhanVienService {
 
         if (updateData.hoTen) updateData.hoTenNv = updateData.hoTen;
         if (updateData.dienThoai) updateData.soDienThoai = updateData.dienThoai;
+
+        if (updateData.soDienThoai !== undefined) {
+            if (!updateData.soDienThoai.trim()) throw new ApiError(400, 'Số điện thoại không được để trống.');
+            if (!REGEX.SO_DIEN_THOAI.test(updateData.soDienThoai.trim())) {
+                throw new ApiError(
+                    400,
+                    'Số điện thoại không hợp lệ. Vui lòng nhập số điện thoại gồm 10 chữ số (bắt đầu bằng 03, 05, 07, 08, 09).',
+                );
+            }
+        }
 
         Object.assign(nhanVien, updateData);
         await nhanVien.save();

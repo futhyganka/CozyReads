@@ -25,6 +25,13 @@ router.post(
     DocGiaController.taoDocGia,
 );
 
+// Gửi OTP xác thực đổi email mới
+router.post(
+    '/:id/gui-otp-doi-email',
+    checkPermission(PERMISSIONS.BORROWS_READ_OWN),
+    DocGiaController.guiOtpDoiEmail,
+);
+
 // Cập nhật thông tin độc giả (Bản thân hoặc Quản lý)
 router.put(
     '/:id',

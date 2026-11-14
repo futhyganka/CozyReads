@@ -70,12 +70,13 @@ async function testDiemTuDong() {
     // Case 1: Thang điểm
     console.log('Case 1: Kiểm tra thang điểm và số sách được mượn tối đa');
     assert.strictEqual(DiemService.tinhSoSachToiDa(100), 3);
-    assert.strictEqual(DiemService.tinhSoSachToiDa(70), 3);
-    assert.strictEqual(DiemService.tinhSoSachToiDa(69), 2);
-    assert.strictEqual(DiemService.tinhSoSachToiDa(40), 2);
-    assert.strictEqual(DiemService.tinhSoSachToiDa(39), 1);
-    assert.strictEqual(DiemService.tinhSoSachToiDa(10), 1);
-    assert.strictEqual(DiemService.tinhSoSachToiDa(9), 0);
+    assert.strictEqual(DiemService.tinhSoSachToiDa(71), 3);
+    assert.strictEqual(DiemService.tinhSoSachToiDa(70), 2);
+    assert.strictEqual(DiemService.tinhSoSachToiDa(41), 2);
+    assert.strictEqual(DiemService.tinhSoSachToiDa(40), 1);
+    assert.strictEqual(DiemService.tinhSoSachToiDa(11), 1);
+    assert.strictEqual(DiemService.tinhSoSachToiDa(10), 0);
+    assert.strictEqual(DiemService.tinhSoSachToiDa(0), 0);
 
     // Case 2: Kiểm tra cập nhật trạng thái mượn sách quá hạn & tự động trừ điểm theo ngày
     console.log(

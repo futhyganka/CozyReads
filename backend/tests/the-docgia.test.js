@@ -28,8 +28,8 @@ async function testTheDocGia() {
     assert.strictEqual(GOI_GIA_HAN['6_thang'].soNgay, 180);
     assert.strictEqual(GOI_GIA_HAN['6_thang'].gia, 100000);
 
-    // Case 2: Bắt buộc dienThoai khi tạo độc giả
-    console.log('Case 2: Bắt buộc số điện thoại khi đăng ký');
+    // Case 2: Bắt buộc dienThoai và kiểm tra format số điện thoại khi đăng ký
+    console.log('Case 2: Bắt buộc số điện thoại và kiểm tra format khi đăng ký');
     const tokenNoSdt = await taoRegistrationTokenTest('nosdt@test.com');
     let biLoiKhongSoDt = false;
     try {
@@ -46,6 +46,23 @@ async function testTheDocGia() {
         assert(err.message.includes('bắt buộc'));
     }
     assert.strictEqual(biLoiKhongSoDt, true);
+
+    // Chặn số điện thoại sai định dạng (chữ, không đủ 10 số, hoặc sai đầu số)
+    let biLoiSdtSaiFormat = false;
+    try {
+        await AuthService.dangKyDocGia({
+            registrationToken: tokenNoSdt,
+            email: 'nosdt@test.com',
+            password: '123',
+            hoLot: 'Lê',
+            ten: 'B',
+            dienThoai: '0123456789', // Đầu 01 không hợp lệ
+        });
+    } catch (err) {
+        biLoiSdtSaiFormat = true;
+        assert(err.message.includes('không hợp lệ'));
+    }
+    assert.strictEqual(biLoiSdtSaiFormat, true);
 
     // Case 3: Tạo yêu cầu gia hạn thẻ
     console.log('Case 3: Tạo khoản thanh toán gia hạn thẻ độc giả tự do');
@@ -170,6 +187,52 @@ async function testTheDocGia() {
     });
     assert.strictEqual(docGiaTaiQuayCoTk.email, 'linhdang@test.com');
     assert.strictEqual(docGiaTaiQuayCoTk.chuKyThanhToan, '6_thang_mien_phi');
+
+    // Case 8: Kiểm tra hàm capNhatDocGia chỉ cho phép sửa thông tin cá nhân và chặn sửa trạng thái/điểm
+    console.log('Case 8: capNhatDocGia chỉ cho sửa thông tin cá nhân (hoLot, ten, diaChi...) và chặn sửa trạng thái thẻ');
+    const updateRes = await DocGiaService.capNhatDocGia(docGiaTaiQuay._id, {
+        ten: 'Nam Đã Đổi Tên',
+        diaChi: 'Cần Thơ',
+        trangThai: TRANG_THAI_DOC_GIA.TAM_KHOA, // Cố tình gửi trạng thái muốn đổi
+        diemDocGia: 50, // Cố tình gửi điểm muốn đổi
+    });
+    assert.strictEqual(updateRes.ten, 'Nam Đã Đổi Tên');
+    assert.strictEqual(updateRes.diaChi, 'Cần Thơ');
+    // Trạng thái thẻ và điểm số vẫn giữ nguyên, không bị thay đổi
+    assert.strictEqual(updateRes.trangThaiTaiKhoan, TRANG_THAI_DOC_GIA.HOAT_DONG);
+    assert.strictEqual(updateRes.diemDocGia, 100);
+
+    // Case 9: Kiểm tra chặn số điện thoại sai định dạng khi cập nhật độc giả hoặc tạo tại quầy
+    console.log('Case 9: Chặn số điện thoại sai định dạng khi tạo tại quầy và khi cập nhật');
+    let biChanSdtTaiQuay = false;
+    try {
+        await DocGiaService.taoDocGiaTaiQuay({
+            hoLot: 'Nguyễn Văn',
+            ten: 'Bừa',
+            dienThoai: 'abc1234567',
+        });
+    } catch (err) {
+        biChanSdtTaiQuay = true;
+        assert(err.message.includes('không hợp lệ'));
+    }
+    assert.strictEqual(biChanSdtTaiQuay, true);
+
+    let biChanCapNhatSdtSai = false;
+    try {
+        await DocGiaService.capNhatDocGia(docGiaTaiQuay._id, {
+            dienThoai: '0281234567', // Mã vùng bàn thay vì di động
+        });
+    } catch (err) {
+        biChanCapNhatSdtSai = true;
+        assert(err.message.includes('không hợp lệ'));
+    }
+    assert.strictEqual(biChanCapNhatSdtSai, true);
+
+    // Cập nhật số điện thoại hợp lệ thành công
+    const capNhatSdtOk = await DocGiaService.capNhatDocGia(docGiaTaiQuay._id, {
+        dienThoai: '0388991122',
+    });
+    assert.strictEqual(capNhatSdtOk.dienThoai, '0388991122');
 
     console.log('✅ tests/the-docgia.test.js PASSED ALL CHECKS!');
 }

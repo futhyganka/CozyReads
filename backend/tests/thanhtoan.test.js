@@ -138,6 +138,37 @@ async function testThanhToan() {
         ngayHetHanExpected.toISOString(),
     );
 
+    // Case 5: Quét và nhắc nhở bồi thường mất sách sau 3 ngày
+    console.log('Case 5: Quét nhắc nhở bồi thường sách mất sau 3 ngày');
+    const sach2 = await Sach.create({
+        maSach: 'MS998',
+        tenSach: 'Lập trình Python',
+        donGia: 95000,
+        soQuyen: 3,
+        namXuatBan: 2024,
+        maNXB: nxb._id,
+        maTG: [tg._id],
+        maDM: [dm._id],
+    });
+    const phieuMuon2 = await MuonTraService.taoPhieuMuon({
+        docGiaId: docGia._id,
+        sachId: sach2._id,
+        msnvMuonId: nhanVien._id,
+    });
+    const { thanhToan: ttMatSach2 } = await MuonTraService.baoMatSach({
+        luotMuonId: phieuMuon2._id,
+        msnvGhiNhanId: nhanVien._id,
+    });
+    // Giả lập thời điểm tạo cách đây 4 ngày
+    ttMatSach2.ngayTao = new Date(Date.now() - 4 * 24 * 60 * 60 * 1000);
+    await ttMatSach2.save();
+
+    const ketQuaNhacNho = await ThanhToanService.quetVaNhacNhoBoiThuongMatSach(new Date());
+    assert(ketQuaNhacNho.length >= 1);
+    const itemNhac = ketQuaNhacNho.find(k => k.maThanhToan === ttMatSach2.maThanhToan);
+    assert(itemNhac !== undefined);
+    assert.strictEqual(itemNhac.soLanNhacNho, 2);
+
     console.log('✅ tests/thanhtoan.test.js PASSED ALL CHECKS!');
 }
 

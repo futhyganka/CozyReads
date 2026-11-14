@@ -9,10 +9,10 @@ const {
 class DiemService {
     /**
      * Xác định số sách tối đa được mượn dựa vào điểm độc giả
-     * < 10: 0 cuốn
-     * 10 - 39: 1 cuốn
-     * 40 - 69: 2 cuốn
-     * 70 - 100: 3 cuốn
+     * <= 10: 0 cuốn
+     * 11 - 40: 1 cuốn
+     * 41 - 70: 2 cuốn
+     * 71 - 100: 3 cuốn
      */
     static tinhSoSachToiDa(diemDocGia) {
         const diem = Math.max(
@@ -49,27 +49,25 @@ class DiemService {
 
     /**
      * Quét và trừ điểm đối với các độc giả đang có sách quá hạn (1 điểm / ngày / cuốn)
-     * - Chỉ trừ điểm cho mỗi ngày quá hạn trôi qua kể từ mốc đã trừ trước đó, tránh trừ trùng lặp
+     * - Dùng aggregate để gom nhóm và đếm số sách quá hạn của từng độc giả trong 1 query duy nhất
      * - Cập nhật ngayCapNhatDiemKhongViPham = now
      */
     static async quetVaTruDiemQuaHan(thoiDiemHienTai = new Date()) {
         const now = new Date(thoiDiemHienTai);
 
-        const dsDocGiaCoSachQuaHan = await TheoDoiMuonSach.distinct('maDocGia', {
-            trangThai: TRANG_THAI_MUON.QUA_HAN,
-        });
+        // Gom nhóm và đếm số sách quá hạn của từng độc giả ngay trong 1 truy vấn MongoDB
+        const dsDocGiaQuaHan = await TheoDoiMuonSach.aggregate([
+            { $match: { trangThai: TRANG_THAI_MUON.QUA_HAN } },
+            { $group: { _id: '$maDocGia', soLuongSachQuaHan: { $sum: 1 } } },
+        ]);
 
         const ketQua = [];
 
-        for (const docGiaId of dsDocGiaCoSachQuaHan) {
-            const docGia = await DocGia.findById(docGiaId);
+        for (const item of dsDocGiaQuaHan) {
+            const docGia = await DocGia.findById(item._id);
             if (!docGia) continue;
 
-            const soLuongSachQuaHan = await TheoDoiMuonSach.countDocuments({
-                maDocGia: docGiaId,
-                trangThai: TRANG_THAI_MUON.QUA_HAN,
-            });
-
+            const soLuongSachQuaHan = item.soLuongSachQuaHan;
             if (soLuongSachQuaHan > 0) {
                 const diemTru =
                     soLuongSachQuaHan * DIEM.DIEM_TRU_QUA_HAN_MOI_NGAY;

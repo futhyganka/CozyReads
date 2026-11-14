@@ -11,6 +11,7 @@ const {
     DIEM,
     TRANG_THAI_DOC_GIA,
     GOI_GIA_HAN,
+    REGEX,
 } = require('../constants/business-rules');
 
 class AuthService {
@@ -26,13 +27,6 @@ class AuthService {
      */
     static async dangKyTaiKhoan(data) {
         return this.dangKyDocGia(data);
-    }
-
-    /**
-     * Tạo hồ sơ độc giả (tương thích backward)
-     */
-    static async taoHoSoDocGia(data) {
-        return DocGia.findById(data.taiKhoanId || data._id);
     }
 
     /**
@@ -195,6 +189,12 @@ class AuthService {
         }
         if (!dienThoai || !dienThoai.trim()) {
             throw new ApiError(400, 'Số điện thoại độc giả là bắt buộc.');
+        }
+        if (!REGEX.SO_DIEN_THOAI.test(dienThoai.trim())) {
+            throw new ApiError(
+                400,
+                'Số điện thoại không hợp lệ. Vui lòng nhập số điện thoại gồm 10 chữ số (bắt đầu bằng 03, 05, 07, 08, 09).',
+            );
         }
         if (!hoLot || !ten) {
             throw new ApiError(400, 'Họ lót và tên là bắt buộc.');
@@ -363,6 +363,43 @@ class AuthService {
             token,
             role,
             maVaiTro: role,
+        };
+    }
+
+    /**
+     * Quên mật khẩu: Đặt lại mật khẩu mới bằng verificationToken đã xác thực OTP
+     */
+    static async datLaiMatKhauQuen({ email, verificationToken, matKhauMoi }) {
+        if (!email || !verificationToken || !matKhauMoi) {
+            throw new ApiError(
+                400,
+                'Email, verificationToken và mật khẩu mới là bắt buộc.',
+            );
+        }
+
+        if (matKhauMoi.length < 6) {
+            throw new ApiError(400, 'Mật khẩu mới phải có ít nhất 6 ký tự.');
+        }
+
+        const normalizedEmail = email.trim().toLowerCase();
+
+        // Tiêu thụ token (đảm bảo token hợp lệ, chưa dùng, chưa hết hạn và đúng email)
+        const verifiedEmail = await OtpService.tieuThuRegistrationToken(
+            verificationToken,
+            normalizedEmail,
+        );
+
+        const docGia = await DocGia.findOne({ email: verifiedEmail }).select('+password');
+        if (!docGia) {
+            throw new ApiError(404, 'Không tìm thấy tài khoản độc giả tương ứng.');
+        }
+
+        docGia.password = await this.bamMatKhau(matKhauMoi);
+        await docGia.save();
+
+        return {
+            success: true,
+            message: 'Đặt lại mật khẩu thành công. Bạn có thể đăng nhập bằng mật khẩu mới.',
         };
     }
 

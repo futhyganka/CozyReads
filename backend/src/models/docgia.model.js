@@ -6,6 +6,7 @@ const {
     TRANG_THAI_GIA_HAN,
     DIEM,
     GOI_GIA_HAN,
+    REGEX,
 } = require('../constants/business-rules');
 
 const docGiaSchema = new Schema(
@@ -47,6 +48,10 @@ const docGiaSchema = new Schema(
             required: true,
             trim: true,
             index: true,
+            match: [
+                REGEX.SO_DIEN_THOAI,
+                'Số điện thoại không hợp lệ (yêu cầu 10 chữ số, bắt đầu bằng 03, 05, 07, 08, 09)',
+            ],
         },
         email: {
             type: String,
@@ -55,6 +60,13 @@ const docGiaSchema = new Schema(
             lowercase: true,
             trim: true,
             index: true,
+            validate: {
+                validator: function (v) {
+                    if (v === null || v === undefined || v === '') return true;
+                    return REGEX.EMAIL.test(v);
+                },
+                message: 'Địa chỉ email không hợp lệ.',
+            },
         },
         password: {
             type: String,

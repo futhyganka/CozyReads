@@ -16,10 +16,10 @@ const BUSINESS_RULES = {
 
     // Giới hạn số lượng sách mượn theo thang điểm
     THANG_DIEM_MUON_SACH: [
-        { min: 0, max: 9, soSachToiDa: 0 },
-        { min: 10, max: 39, soSachToiDa: 1 },
-        { min: 40, max: 69, soSachToiDa: 2 },
-        { min: 70, max: 100, soSachToiDa: 3 },
+        { min: 0, max: 10, soSachToiDa: 0 },
+        { min: 11, max: 40, soSachToiDa: 1 },
+        { min: 41, max: 70, soSachToiDa: 2 },
+        { min: 71, max: 100, soSachToiDa: 3 },
     ],
 
     // Mượn sách
@@ -104,10 +104,17 @@ const BUSINESS_RULES = {
         DA_HUY: 'daHuy',
     },
 
+    // Phương thức thanh toán
     PHUONG_THUC_THANH_TOAN: {
         TIEN_MAT: 'tienMat',
         CHUYEN_KHOAN: 'chuyenKhoan',
         VI_DIEN_TU: 'viDienTu',
+    },
+
+    // Biểu thức chính quy kiểm tra định dạng dữ liệu
+    REGEX: {
+        SO_DIEN_THOAI: /^0[35789]\d{8}$/,
+        EMAIL: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
     },
 };
 

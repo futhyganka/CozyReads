@@ -1,6 +1,20 @@
 const DocGiaService = require('../services/docgia.service');
+const OtpService = require('../services/otp.service');
 
 class DocGiaController {
+    // [POST] /api/docgias/:id/gui-otp-doi-email
+    static async guiOtpDoiEmail(req, res, next) {
+        try {
+            const { emailMoi } = req.body;
+            const ketQua = await OtpService.guiOtpDoiEmail(emailMoi, req.params.id);
+            res.json({
+                success: true,
+                ...ketQua,
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
     // [GET] /api/docgias hoặc /api/doc-gia
     static async getDanhSachDocGia(req, res, next) {
         try {

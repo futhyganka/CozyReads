@@ -70,6 +70,29 @@ class AuthController {
             next(error);
         }
     }
+    // [POST] /api/auth/gui-otp-quen-mat-khau
+    static async guiOtpQuenMatKhau(req, res, next) {
+        try {
+            const { email } = req.body;
+            const ketQua = await OtpService.guiOtpQuenMatKhau(email);
+            res.json({
+                success: true,
+                ...ketQua,
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    // [POST] /api/auth/dat-lai-mat-khau
+    static async datLaiMatKhau(req, res, next) {
+        try {
+            const ketQua = await AuthService.datLaiMatKhauQuen(req.body);
+            res.json(ketQua);
+        } catch (error) {
+            next(error);
+        }
+    }
 }
 
 module.exports = AuthController;

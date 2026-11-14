@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 const { Schema } = mongoose;
-const { CHUC_VU_NHAN_VIEN } = require('../constants/business-rules');
+const { CHUC_VU_NHAN_VIEN, REGEX } = require('../constants/business-rules');
 
 const nhanVienSchema = new Schema(
     {
@@ -39,6 +39,10 @@ const nhanVienSchema = new Schema(
             required: true,
             trim: true,
             index: true,
+            match: [
+                REGEX.SO_DIEN_THOAI,
+                'Số điện thoại không hợp lệ (yêu cầu 10 chữ số, bắt đầu bằng 03, 05, 07, 08, 09)',
+            ],
         },
         luong: {
             type: Number,

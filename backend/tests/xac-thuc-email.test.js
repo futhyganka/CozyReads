@@ -225,6 +225,82 @@ async function testXacThucEmailVaDangKy() {
     }
     assert.strictEqual(biChanTaiQuayChuaXacThuc, true);
 
+    // 14. Đổi email mới yêu cầu xác thực OTP trên email mới
+    console.log('Case 14: Đổi email mới yêu cầu xác thực OTP trên email mới');
+    const docGiaHienTai = await DocGia.findOne({ email: emailTest });
+    const emailMoi = 'new_email_reader@test.com';
+
+    // Chặn nếu cập nhật thẳng email mà không có verificationToken
+    let biChanDoiEmailKhongToken = false;
+    try {
+        await DocGiaService.capNhatDocGia(docGiaHienTai._id, {
+            email: emailMoi,
+        });
+    } catch (err) {
+        biChanDoiEmailKhongToken = true;
+        assert(err.message.includes('xác thực OTP trên email mới'));
+    }
+    assert.strictEqual(biChanDoiEmailKhongToken, true);
+
+    // Gửi OTP tới email mới và xác thực
+    await OtpService.guiOtpDoiEmail(emailMoi, docGiaHienTai._id);
+    const otpDoiEmail = lastSentOtp;
+    const resXacThucDoiEmail = await OtpService.xacThucOtp(emailMoi, otpDoiEmail);
+    assert(resXacThucDoiEmail.verificationToken !== undefined);
+
+    // Đổi email thành công với token
+    const docGiaSauDoiEmail = await DocGiaService.capNhatDocGia(docGiaHienTai._id, {
+        email: emailMoi,
+        verificationToken: resXacThucDoiEmail.verificationToken,
+    });
+    assert.strictEqual(docGiaSauDoiEmail.email, emailMoi);
+
+    // 15. Quên mật khẩu: Gửi OTP, xác thực và đặt lại mật khẩu mới
+    console.log('Case 15: Quên mật khẩu: Gửi OTP, xác thực và đặt lại mật khẩu mới');
+    // Chặn gửi OTP quên mật khẩu nếu email không tồn tại trong hệ thống
+    let biChanEmailChuaDangKy = false;
+    try {
+        await OtpService.guiOtpQuenMatKhau('email_chua_dang_ky@test.com');
+    } catch (err) {
+        biChanEmailChuaDangKy = true;
+        assert(err.message.includes('Không tìm thấy tài khoản độc giả'));
+    }
+    assert.strictEqual(biChanEmailChuaDangKy, true);
+
+    // Gửi OTP quên mật khẩu cho email hiện tại
+    await OtpService.guiOtpQuenMatKhau(emailMoi);
+    const otpQuenMK = lastSentOtp;
+    const resXacThucQuenMK = await OtpService.xacThucOtp(emailMoi, otpQuenMK);
+    assert(resXacThucQuenMK.verificationToken !== undefined);
+
+    // Đặt lại mật khẩu mới
+    const resReset = await AuthService.datLaiMatKhauQuen({
+        email: emailMoi,
+        verificationToken: resXacThucQuenMK.verificationToken,
+        matKhauMoi: 'newPassword@999',
+    });
+    assert.strictEqual(resReset.success, true);
+
+    // Đăng nhập thử bằng mật khẩu cũ -> Thất bại
+    let biSaiPassCu = false;
+    try {
+        await AuthService.dangNhapDocGia({
+            email: emailMoi,
+            password: 'password123',
+        });
+    } catch (err) {
+        biSaiPassCu = true;
+    }
+    assert.strictEqual(biSaiPassCu, true);
+
+    // Đăng nhập thử bằng mật khẩu mới -> Thành công
+    const loginPassMoi = await AuthService.dangNhapDocGia({
+        email: emailMoi,
+        password: 'newPassword@999',
+    });
+    assert.strictEqual(loginPassMoi.email, emailMoi);
+    assert(loginPassMoi.token !== undefined);
+
     // Khôi phục mail transporter gốc
     MailService.guiEmailOtp = originalSendMail;
 
