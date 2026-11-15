@@ -49,20 +49,26 @@ const theoDoiMuonSachSchema = new Schema(
             default: TRANG_THAI_MUON.DANG_MUON,
             index: true,
         },
-        tienPhat: {
-            type: Number,
-            default: 0,
-            min: 0,
-        },
-        ghiChu: {
-            type: String,
-            default: '',
-        },
     },
     {
         timestamps: true,
     },
 );
+
+// Virtual tính toán mức tiền bồi thường (từ đơn giá sách khi báo mất/đã bồi thường, không lưu thừa trong CSDL)
+theoDoiMuonSachSchema.virtual('tienPhat')
+    .get(function () {
+        if (
+            this.trangThai === TRANG_THAI_MUON.DA_MAT ||
+            this.trangThai === TRANG_THAI_MUON.DA_BOI_THUONG
+        ) {
+            return this._tienPhat ?? this.maSach?.donGia ?? 50000;
+        }
+        return 0;
+    })
+    .set(function (val) {
+        this._tienPhat = val;
+    });
 
 // Virtual alias cho docGia, sach để tương thích với logic cũ
 theoDoiMuonSachSchema.virtual('docGia')

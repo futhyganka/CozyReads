@@ -143,7 +143,7 @@ async function seedData() {
         if (!dgExists) {
             await AuthService.dangKyDocGia({
                 email: dgEmail,
-                password: 'readerPassword123',
+                password: 'Reader@123',
                 hoLot: 'Trần Văn',
                 ten: 'An',
                 dienThoai: '0966666666',

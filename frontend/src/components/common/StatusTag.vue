@@ -5,6 +5,7 @@ import {
     getTrangThaiDocGiaMeta,
     getTrangThaiMuonMeta,
     getTrangThaiThanhToanMeta,
+    getTrangThaiPhanHoiMeta,
     getLoaiThanhToanMeta,
     getChucVuMeta,
 } from '@/utils/formatters';
@@ -12,7 +13,7 @@ import {
 const props = defineProps({
     type: {
         type: String,
-        required: true, // 'docGia' | 'muon' | 'thanhToan' | 'loaiThanhToan' | 'chucVu'
+        required: true, // 'docGia' | 'muon' | 'thanhToan' | 'phanHoi' | 'loaiThanhToan' | 'chucVu'
     },
     value: {
         type: String,
@@ -28,6 +29,8 @@ const meta = computed(() => {
             return getTrangThaiMuonMeta(props.value);
         case 'thanhToan':
             return getTrangThaiThanhToanMeta(props.value);
+        case 'phanHoi':
+            return getTrangThaiPhanHoiMeta(props.value);
         case 'loaiThanhToan':
             return getLoaiThanhToanMeta(props.value);
         case 'chucVu':

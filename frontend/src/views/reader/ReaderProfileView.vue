@@ -29,6 +29,18 @@ const form = reactive({
     avatar: '',
 });
 
+const errors = reactive({
+    hoLot: '',
+    ten: '',
+    dienThoai: '',
+    ngaySinh: '',
+    phai: '',
+    diaChi: '',
+    avatar: '',
+    emailMoi: '',
+    otpDoiEmail: '',
+});
+
 // Đổi email qua OTP
 const emailDialogVisible = ref(false);
 const emailStep = ref(1);
@@ -36,6 +48,62 @@ const emailLoading = ref(false);
 const emailError = ref('');
 const emailMoi = ref('');
 const otpDoiEmail = ref('');
+
+function validateField(field) {
+    switch (field) {
+        case 'hoLot':
+            errors.hoLot = !form.hoLot.trim()
+                ? 'Vui lòng nhập họ và tên lót.'
+                : '';
+            return !errors.hoLot;
+        case 'ten':
+            errors.ten = !form.ten.trim() ? 'Vui lòng nhập tên.' : '';
+            return !errors.ten;
+        case 'dienThoai': {
+            const val = form.dienThoai.trim();
+            if (!val) {
+                errors.dienThoai = 'Vui lòng nhập số điện thoại.';
+            } else if (!REGEX.SO_DIEN_THOAI.test(val)) {
+                errors.dienThoai =
+                    'Số điện thoại không hợp lệ (10 chữ số, bắt đầu bằng 03, 05, 07, 08, 09).';
+            } else {
+                errors.dienThoai = '';
+            }
+            return !errors.dienThoai;
+        }
+        case 'ngaySinh':
+            errors.ngaySinh =
+                form.ngaySinh && new Date(form.ngaySinh) > new Date()
+                    ? 'Ngày sinh không được lớn hơn ngày hiện tại.'
+                    : '';
+            return !errors.ngaySinh;
+        case 'emailMoi': {
+            const val = emailMoi.value.trim().toLowerCase();
+            if (!val) {
+                errors.emailMoi = 'Vui lòng nhập địa chỉ email mới.';
+            } else if (!REGEX.EMAIL.test(val)) {
+                errors.emailMoi = 'Địa chỉ email mới không hợp lệ.';
+            } else {
+                errors.emailMoi = '';
+            }
+            return !errors.emailMoi;
+        }
+        case 'otpDoiEmail': {
+            const val = otpDoiEmail.value.trim();
+            if (!val) {
+                errors.otpDoiEmail = 'Vui lòng nhập mã OTP.';
+            } else if (!/^\d{6}$/.test(val)) {
+                errors.otpDoiEmail = 'Mã OTP phải gồm đúng 6 chữ số.';
+            } else {
+                errors.otpDoiEmail = '';
+            }
+            return !errors.otpDoiEmail;
+        }
+        default:
+            errors[field] = '';
+            return true;
+    }
+}
 
 function syncFormFromStore() {
     const p = authStore.userProfile;
@@ -51,13 +119,11 @@ function syncFormFromStore() {
 
 async function handleSaveProfile() {
     errorMsg.value = '';
-    if (!form.hoLot.trim() || !form.ten.trim()) {
-        errorMsg.value = 'Họ lót và tên không được để trống.';
-        return;
-    }
-    if (!REGEX.SO_DIEN_THOAI.test(form.dienThoai.trim())) {
-        errorMsg.value =
-            'Số điện thoại không hợp lệ (10 chữ số, bắt đầu bằng 03, 05, 07, 08, 09).';
+    const v1 = validateField('hoLot');
+    const v2 = validateField('ten');
+    const v3 = validateField('dienThoai');
+    const v4 = validateField('ngaySinh');
+    if (!v1 || !v2 || !v3 || !v4) {
         return;
     }
 
@@ -92,16 +158,17 @@ function openEmailDialog() {
     otpDoiEmail.value = '';
     emailStep.value = 1;
     emailError.value = '';
+    errors.emailMoi = '';
+    errors.otpDoiEmail = '';
     emailDialogVisible.value = true;
 }
 
 async function handleSendChangeEmailOtp() {
     emailError.value = '';
-    const targetEmail = emailMoi.value.trim().toLowerCase();
-    if (!REGEX.EMAIL.test(targetEmail)) {
-        emailError.value = 'Địa chỉ email mới không hợp lệ.';
+    if (!validateField('emailMoi')) {
         return;
     }
+    const targetEmail = emailMoi.value.trim().toLowerCase();
 
     emailLoading.value = true;
     try {
@@ -118,6 +185,7 @@ async function handleSendChangeEmailOtp() {
             life: 3500,
         });
     } catch (err) {
+        errors.emailMoi = err.message;
         emailError.value = err.message;
     } finally {
         emailLoading.value = false;
@@ -126,8 +194,7 @@ async function handleSendChangeEmailOtp() {
 
 async function handleVerifyAndChangeEmail() {
     emailError.value = '';
-    if (!/^\d{6}$/.test(otpDoiEmail.value.trim())) {
-        emailError.value = 'Vui lòng nhập mã OTP gồm 6 chữ số.';
+    if (!validateField('otpDoiEmail')) {
         return;
     }
 
@@ -154,6 +221,7 @@ async function handleVerifyAndChangeEmail() {
             life: 4000,
         });
     } catch (err) {
+        errors.otpDoiEmail = err.message;
         emailError.value = err.message;
     } finally {
         emailLoading.value = false;
@@ -179,6 +247,7 @@ onMounted(async () => {
 
             <form
                 class="cr-flex-col cr-gap-md"
+                novalidate
                 @submit.prevent="handleSaveProfile"
             >
                 <div class="cr-form-grid">
@@ -214,17 +283,49 @@ onMounted(async () => {
 
                     <div class="cr-field">
                         <label class="cr-label">Họ và tên lót *</label>
-                        <InputText v-model="form.hoLot" fluid />
+                        <InputText
+                            v-model="form.hoLot"
+                            :invalid="!!errors.hoLot"
+                            :class="{ 'cr-input-invalid': !!errors.hoLot }"
+                            fluid
+                            @update:modelValue="validateField('hoLot')"
+                            @blur="validateField('hoLot')"
+                        />
+                        <small v-if="errors.hoLot" class="cr-error">
+                            {{ errors.hoLot }}
+                        </small>
                     </div>
 
                     <div class="cr-field">
                         <label class="cr-label">Tên *</label>
-                        <InputText v-model="form.ten" fluid />
+                        <InputText
+                            v-model="form.ten"
+                            :invalid="!!errors.ten"
+                            :class="{ 'cr-input-invalid': !!errors.ten }"
+                            fluid
+                            @update:modelValue="validateField('ten')"
+                            @blur="validateField('ten')"
+                        />
+                        <small v-if="errors.ten" class="cr-error">
+                            {{ errors.ten }}
+                        </small>
                     </div>
 
                     <div class="cr-field">
                         <label class="cr-label">Số điện thoại *</label>
-                        <InputText v-model="form.dienThoai" maxlength="10" fluid />
+                        <InputText
+                            v-model="form.dienThoai"
+                            maxlength="10"
+                            placeholder="10 chữ số (bắt đầu 03, 05, 07, 08, 09)"
+                            :invalid="!!errors.dienThoai"
+                            :class="{ 'cr-input-invalid': !!errors.dienThoai }"
+                            fluid
+                            @update:modelValue="validateField('dienThoai')"
+                            @blur="validateField('dienThoai')"
+                        />
+                        <small v-if="errors.dienThoai" class="cr-error">
+                            {{ errors.dienThoai }}
+                        </small>
                     </div>
 
                     <div class="cr-field">
@@ -234,8 +335,14 @@ onMounted(async () => {
                             :options="PHAI_OPTIONS"
                             optionLabel="label"
                             optionValue="value"
+                            :invalid="!!errors.phai"
+                            :class="{ 'cr-input-invalid': !!errors.phai }"
                             fluid
+                            @update:modelValue="validateField('phai')"
                         />
+                        <small v-if="errors.phai" class="cr-error">
+                            {{ errors.phai }}
+                        </small>
                     </div>
 
                     <div class="cr-field">
@@ -244,8 +351,14 @@ onMounted(async () => {
                             v-model="form.ngaySinh"
                             dateFormat="dd/mm/yy"
                             showIcon
+                            :invalid="!!errors.ngaySinh"
+                            :class="{ 'cr-input-invalid': !!errors.ngaySinh }"
                             fluid
+                            @update:modelValue="validateField('ngaySinh')"
                         />
+                        <small v-if="errors.ngaySinh" class="cr-error">
+                            {{ errors.ngaySinh }}
+                        </small>
                     </div>
 
                     <div class="cr-field">
@@ -253,13 +366,30 @@ onMounted(async () => {
                         <InputText
                             v-model="form.avatar"
                             placeholder="https://..."
+                            :invalid="!!errors.avatar"
+                            :class="{ 'cr-input-invalid': !!errors.avatar }"
                             fluid
+                            @update:modelValue="validateField('avatar')"
+                            @blur="validateField('avatar')"
                         />
+                        <small v-if="errors.avatar" class="cr-error">
+                            {{ errors.avatar }}
+                        </small>
                     </div>
 
                     <div class="cr-field cr-field-full">
                         <label class="cr-label">Địa chỉ liên hệ</label>
-                        <InputText v-model="form.diaChi" fluid />
+                        <InputText
+                            v-model="form.diaChi"
+                            :invalid="!!errors.diaChi"
+                            :class="{ 'cr-input-invalid': !!errors.diaChi }"
+                            fluid
+                            @update:modelValue="validateField('diaChi')"
+                            @blur="validateField('diaChi')"
+                        />
+                        <small v-if="errors.diaChi" class="cr-error">
+                            {{ errors.diaChi }}
+                        </small>
                     </div>
                 </div>
 
@@ -293,8 +423,15 @@ onMounted(async () => {
                         v-model="emailMoi"
                         type="email"
                         placeholder="emailmoi@example.com"
+                        :invalid="!!errors.emailMoi"
+                        :class="{ 'cr-input-invalid': !!errors.emailMoi }"
                         fluid
+                        @update:modelValue="validateField('emailMoi')"
+                        @blur="validateField('emailMoi')"
                     />
+                    <small v-if="errors.emailMoi" class="cr-error">
+                        {{ errors.emailMoi }}
+                    </small>
                 </div>
                 <Button
                     label="Gửi mã OTP tới Email mới"
@@ -315,8 +452,15 @@ onMounted(async () => {
                         v-model="otpDoiEmail"
                         maxlength="6"
                         placeholder="Nhập 6 chữ số"
+                        :invalid="!!errors.otpDoiEmail"
+                        :class="{ 'cr-input-invalid': !!errors.otpDoiEmail }"
                         fluid
+                        @update:modelValue="validateField('otpDoiEmail')"
+                        @blur="validateField('otpDoiEmail')"
                     />
+                    <small v-if="errors.otpDoiEmail" class="cr-error">
+                        {{ errors.otpDoiEmail }}
+                    </small>
                 </div>
                 <div class="cr-flex cr-gap-sm">
                     <Button

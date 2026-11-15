@@ -111,10 +111,23 @@ const BUSINESS_RULES = {
         VI_DIEN_TU: 'viDienTu',
     },
 
+    // Loại và trạng thái phản hồi (Liên hệ & Góp ý)
+    LOAI_PHAN_HOI: {
+        LIEN_HE: 'lienHe',
+        GOP_Y: 'gopY',
+    },
+
+    TRANG_THAI_PHAN_HOI: {
+        CHO_XU_LY: 'choXuLy',
+        DANG_XU_LY: 'dangXuLy',
+        DA_XU_LY: 'daXuLy',
+    },
+
     // Biểu thức chính quy kiểm tra định dạng dữ liệu
     REGEX: {
         SO_DIEN_THOAI: /^0[35789]\d{8}$/,
         EMAIL: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+        MAT_KHAU: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9\s])\S{8,}$/,
     },
 };
 

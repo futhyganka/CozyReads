@@ -12,34 +12,37 @@ const isStaffAuth = computed(() => route.path.startsWith('/quan-ly'));
 
 <template>
     <div class="cr-auth-shell">
-        <div class="cr-auth-box">
-            <div class="cr-flex-between" style="margin-bottom: 1.25rem">
+        <header class="cr-auth-header">
+            <div class="cr-auth-header-inner">
                 <div
-                    class="cr-flex-col cr-gap-xs"
-                    :style="{ cursor: isStaffAuth ? 'default' : 'pointer' }"
+                    class="cr-items-center"
+                    :style="{ cursor: isStaffAuth ? 'default' : 'pointer', gap: '0.75rem' }"
                     @click="!isStaffAuth && router.push('/')"
                 >
                     <img
                         :src="logoImg"
                         alt="CozyReads Logo"
-                        style="height: 48px; width: auto; object-fit: contain; display: block"
+                        style="height: 44px; width: auto; object-fit: contain; display: block"
                     />
-                    <div v-if="isStaffAuth" class="cr-muted" style="font-size: 0.75rem">
+                    <span v-if="isStaffAuth" class="cr-muted" style="font-weight: 600; font-size: 0.9rem">
                         Hệ thống Quản lý Thư viện Nội bộ
-                    </div>
+                    </span>
                 </div>
                 <Button
-                    v-if="!isStaffAuth"
                     label="Về trang chủ"
                     icon="pi pi-arrow-left"
                     severity="secondary"
-                    text
+                    outlined
                     size="small"
                     @click="router.push('/')"
                 />
             </div>
+        </header>
 
-            <router-view />
-        </div>
+        <main class="cr-auth-main">
+            <div class="cr-auth-box">
+                <router-view />
+            </div>
+        </main>
     </div>
 </template>

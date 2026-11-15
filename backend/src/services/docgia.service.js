@@ -72,6 +72,12 @@ class DocGiaService {
         const maDocGia = await AuthService.taoMaDocGia();
         let hashedPassword = undefined;
         if (password) {
+            if (!REGEX.MAT_KHAU.test(password)) {
+                throw new ApiError(
+                    400,
+                    'Mật khẩu phải từ 8 ký tự trở lên, bao gồm chữ thường, chữ hoa, chữ số, ký tự đặc biệt và không chứa khoảng trắng.',
+                );
+            }
             hashedPassword = await AuthService.bamMatKhau(password);
         }
 
@@ -255,8 +261,11 @@ class DocGiaService {
      * Đổi mật khẩu độc giả
      */
     static async doiMatKhau(docGiaId, { matKhauCu, matKhauMoi }) {
-        if (!matKhauMoi || matKhauMoi.length < 6) {
-            throw new ApiError(400, 'Mật khẩu mới phải có ít nhất 6 ký tự.');
+        if (!matKhauMoi || !REGEX.MAT_KHAU.test(matKhauMoi)) {
+            throw new ApiError(
+                400,
+                'Mật khẩu mới phải từ 8 ký tự trở lên, bao gồm chữ thường, chữ hoa, chữ số, ký tự đặc biệt và không chứa khoảng trắng.',
+            );
         }
 
         const docGia = await DocGia.findById(docGiaId).select('+password');
@@ -373,10 +382,7 @@ class DocGiaService {
             );
         }
 
-        if (goiGiaHan) {
-            docGia.chuKyThanhToan = goiGiaHan;
-        }
-        const selectedGoi = docGia.chuKyThanhToan || '1_thang';
+        const selectedGoi = goiGiaHan || docGia.chuKyThanhToan || '1_thang';
         const thongTinGoi = GOI_GIA_HAN[selectedGoi];
         if (!thongTinGoi) {
             throw new ApiError(
@@ -391,6 +397,15 @@ class DocGiaService {
             trangThai: TRANG_THAI_THANH_TOAN.CHO_XAC_NHAN,
         });
         if (thanhToanDangCho) {
+            if (goiGiaHan && thanhToanDangCho.goiGiaHan !== selectedGoi) {
+                thanhToanDangCho.goiGiaHan = selectedGoi;
+                thanhToanDangCho.soTien = thongTinGoi.gia;
+                thanhToanDangCho.ghiChu = `Gia hạn thẻ: ${thongTinGoi.tenGoi}`;
+            }
+            if (phuongThuc) {
+                thanhToanDangCho.phuongThuc = phuongThuc;
+            }
+            await thanhToanDangCho.save();
             return thanhToanDangCho;
         }
 
@@ -419,7 +434,7 @@ class DocGiaService {
         const danhSachDenHan = await DocGia.find({
             trangThaiTaiKhoan: { $ne: TRANG_THAI_DOC_GIA.DA_HUY },
             trangThaiGiaHan: TRANG_THAI_GIA_HAN.GIA_HAN,
-            ngayHetHanThe: { $lte: now },
+            ngayHetHanThe: { $ne: null, $lte: now },
         });
 
         const ketQua = [];

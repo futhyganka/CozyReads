@@ -83,6 +83,24 @@ onMounted(() => {
             Bạn đang có <strong>{{ overdueCount }} cuốn sách quá hạn</strong>. Hệ thống tự động trừ 1 điểm uy tín/ngày/cuốn và tạm dừng quyền mượn sách mới cho đến khi bạn hoàn trả tại quầy.
         </Message>
 
+        <Message
+            v-if="!loading && profile.loaiDocGia === 'docGia_tuDo' && !profile.ngayHetHanThe"
+            severity="warn"
+            :closable="false"
+        >
+            <div class="cr-flex-between cr-flex-wrap" style="width: 100%; gap: 0.75rem">
+                <span>
+                    Thẻ <strong>Độc giả tự do</strong> của bạn chưa đăng ký gói sử dụng. Vui lòng chọn gói thẻ và hoàn tất thanh toán để có thể đặt giữ hoặc mượn sách.
+                </span>
+                <Button
+                    label="Chọn gói thẻ ngay"
+                    icon="pi pi-calendar-plus"
+                    size="small"
+                    @click="router.push('/tai-khoan/the-doc-gia')"
+                />
+            </div>
+        </Message>
+
         <div v-if="loading" class="cr-grid-stats">
             <Skeleton v-for="n in 4" :key="n" height="110px" />
         </div>
@@ -129,7 +147,12 @@ onMounted(() => {
                                 {{ activeBorrowsCount }} / {{ maxBorrowLimit }}
                             </div>
                             <div class="cr-muted">
-                                Hạn thẻ: {{ formatDate(profile.ngayHetHanThe) }}
+                                Hạn thẻ:
+                                {{
+                                    profile.ngayHetHanThe
+                                        ? formatDate(profile.ngayHetHanThe)
+                                        : 'Chưa kích hoạt gói'
+                                }}
                             </div>
                         </div>
                         <i class="pi pi-book" style="font-size: 1.8rem; color: var(--cr-primary)"></i>

@@ -136,7 +136,7 @@ async function testXacThucEmailVaDangKy() {
     try {
         await AuthService.dangKyDocGia({
             email: emailTest,
-            password: 'password123',
+            password: 'Password@123',
             hoLot: 'Nguyễn',
             ten: 'An',
             dienThoai: '0901234567',
@@ -152,7 +152,7 @@ async function testXacThucEmailVaDangKy() {
     const resDangKy = await AuthService.dangKyDocGia({
         registrationToken: regToken,
         email: emailTest,
-        password: 'password123',
+        password: 'Password@123',
         hoLot: 'Nguyễn',
         ten: 'An',
         dienThoai: '0901234567',
@@ -170,7 +170,7 @@ async function testXacThucEmailVaDangKy() {
         await AuthService.dangKyDocGia({
             registrationToken: regToken,
             email: emailTest,
-            password: 'password123',
+            password: 'Password@123',
             hoLot: 'Nguyễn',
             ten: 'An',
             dienThoai: '0901234567',
@@ -196,14 +196,14 @@ async function testXacThucEmailVaDangKy() {
     console.log('Case 12: Độc giả đăng nhập thành công bằng email / mã độc giả và mật khẩu');
     const loginEmail = await AuthService.dangNhapDocGia({
         email: emailTest,
-        password: 'password123',
+        password: 'Password@123',
     });
     assert.strictEqual(loginEmail.email, emailTest);
     assert(loginEmail.token !== undefined);
 
     const loginMaDocGia = await AuthService.dangNhapDocGia({
         maDocGia: resDangKy.maDocGia,
-        password: 'password123',
+        password: 'Password@123',
     });
     assert.strictEqual(loginMaDocGia.docGia.maDocGia, resDangKy.maDocGia);
 
@@ -217,7 +217,7 @@ async function testXacThucEmailVaDangKy() {
             ten: 'Bình',
             dienThoai: '0988112233',
             email: emailTaiQuay,
-            password: 'password123',
+            password: 'Password@123',
         });
     } catch (err) {
         biChanTaiQuayChuaXacThuc = true;
@@ -286,7 +286,7 @@ async function testXacThucEmailVaDangKy() {
     try {
         await AuthService.dangNhapDocGia({
             email: emailMoi,
-            password: 'password123',
+            password: 'Password@123',
         });
     } catch (err) {
         biSaiPassCu = true;

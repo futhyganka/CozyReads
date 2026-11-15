@@ -24,6 +24,19 @@ class MuonTraController {
             const phieuMuon = await MuonTraService.getChiTietPhieuMuon(
                 req.params.id,
             );
+            const callerRole = req.user?.role || req.user?.maVaiTro;
+            const callerId = req.user?._id?.toString();
+            const ownerId = (
+                phieuMuon.maDocGia?._id || phieuMuon.maDocGia
+            )?.toString();
+
+            if (callerRole === 'docGia' && callerId && ownerId !== callerId) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Bạn không có quyền xem phiếu mượn của độc giả khác.',
+                });
+            }
+
             res.json({ success: true, data: phieuMuon });
         } catch (error) {
             next(error);
@@ -33,7 +46,11 @@ class MuonTraController {
     // [POST] /api/theodoimuonsachs/kiem-tra
     static async kiemTraDieuKien(req, res, next) {
         try {
-            const { docGiaId, sachId } = req.body;
+            let { docGiaId, sachId } = req.body;
+            const callerRole = req.user?.role || req.user?.maVaiTro;
+            if (callerRole === 'docGia') {
+                docGiaId = req.user?._id;
+            }
             const ketQua = await MuonTraService.kiemTraDieuKienMuon(
                 docGiaId,
                 sachId,

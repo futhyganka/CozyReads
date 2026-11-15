@@ -73,10 +73,11 @@ async function testRaSoatNghiepVu() {
     await AuthService.dangKyDocGia({
         registrationToken: tokenR1,
         email: emailR1,
-        password: 'password123',
+        password: 'Password@123',
         hoLot: 'Nguyễn',
         ten: 'Một',
         dienThoai: '0903333333',
+        loaiDocGia: 'sinhVien',
     });
     const reader1 = await DocGia.findOne({ email: emailR1 });
 
@@ -85,10 +86,11 @@ async function testRaSoatNghiepVu() {
     await AuthService.dangKyDocGia({
         registrationToken: tokenR2,
         email: emailR2,
-        password: 'password123',
+        password: 'Password@123',
         hoLot: 'Trần',
         ten: 'Hai',
         dienThoai: '0904444444',
+        loaiDocGia: 'sinhVien',
     });
     const reader2 = await DocGia.findOne({ email: emailR2 });
 
@@ -200,7 +202,7 @@ async function testRaSoatNghiepVu() {
     console.log('Case 8: Nhân viên bị đánh dấu nghỉ việc không thể đăng nhập');
     const nvNghiViec = await NhanVienService.taoNhanVien({
         hoTenNv: 'Nhân Viên Nghỉ Việc',
-        password: 'password123',
+        password: 'Password@123',
         chucVu: 'nhanVien',
         soDienThoai: '0999999999',
     });
@@ -211,7 +213,7 @@ async function testRaSoatNghiepVu() {
     try {
         await AuthService.dangNhapNhanVien({
             msnv: nvNghiViec.msnv,
-            password: 'password123',
+            password: 'Password@123',
         });
     } catch (err) {
         biChanDangNhapNghiViec = true;

@@ -53,6 +53,16 @@ const menuGroups = computed(() => {
                     icon: 'pi pi-wallet',
                     command: () => navigate('/quan-ly/thanh-toan'),
                 },
+                {
+                    label: 'Quản lý liên hệ',
+                    icon: 'pi pi-envelope',
+                    command: () => navigate('/quan-ly/lien-he'),
+                },
+                {
+                    label: 'Quản lý góp ý',
+                    icon: 'pi pi-comment',
+                    command: () => navigate('/quan-ly/gop-y'),
+                },
             ],
         },
         {
@@ -135,7 +145,7 @@ const menuGroups = computed(() => {
 });
 
 function handleLogout() {
-    authStore.logout();
+    authStore.logout('staff');
     toast.add({
         severity: 'info',
         summary: 'Đã đăng xuất',

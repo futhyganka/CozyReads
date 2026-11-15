@@ -1,6 +1,12 @@
 import axios from 'axios';
 
-export const TOKEN_STORAGE_KEY = 'cr_auth_token';
+export const READER_TOKEN_STORAGE_KEY = 'cr_reader_auth_token';
+export const STAFF_TOKEN_STORAGE_KEY = 'cr_staff_auth_token';
+export const TOKEN_STORAGE_KEY = READER_TOKEN_STORAGE_KEY;
+
+export function isStaffPortalPath(pathname = window.location.pathname) {
+    return String(pathname || '').startsWith('/quan-ly');
+}
 
 const api = axios.create({
     baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api',
@@ -18,7 +24,10 @@ export function registerUnauthorizedHandler(cb) {
 
 api.interceptors.request.use(
     (config) => {
-        const token = localStorage.getItem(TOKEN_STORAGE_KEY);
+        const storageKey = isStaffPortalPath()
+            ? STAFF_TOKEN_STORAGE_KEY
+            : READER_TOKEN_STORAGE_KEY;
+        const token = localStorage.getItem(storageKey);
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }

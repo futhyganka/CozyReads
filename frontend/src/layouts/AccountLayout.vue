@@ -109,7 +109,7 @@ const accountMenuItems = computed(() => [
         </div>
 
         <div class="cr-grid-sidebar">
-            <aside>
+            <aside class="cr-account-sidebar">
                 <Card>
                     <template #content>
                         <PanelMenu :model="accountMenuItems" multiple />
@@ -122,7 +122,7 @@ const accountMenuItems = computed(() => [
             </section>
         </div>
 
-        <Drawer v-model:visible="mobileDrawerVisible" header="Menu Độc giả">
+        <Drawer v-model:visible="mobileDrawerVisible" header="Menu tài khoản">
             <PanelMenu :model="accountMenuItems" multiple />
         </Drawer>
     </div>

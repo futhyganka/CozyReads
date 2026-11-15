@@ -49,7 +49,7 @@ async function testKiemTraCuoiCung() {
 
     const admin = await NhanVienService.taoNhanVien({
         hoTenNv: 'Admin Tổng',
-        password: 'password123',
+        password: 'Password@123',
         chucVu: 'admin',
         soDienThoai: '0901234567',
     });
@@ -59,10 +59,11 @@ async function testKiemTraCuoiCung() {
     await AuthService.dangKyDocGia({
         registrationToken: tokenDg1Final,
         email: emailDg1Final,
-        password: 'password123',
+        password: 'Password@123',
         hoLot: 'Lê',
         ten: 'A',
         dienThoai: '0911111111',
+        loaiDocGia: 'sinhVien',
     });
     const dg1 = await DocGia.findOne({ email: emailDg1Final });
 
@@ -71,10 +72,11 @@ async function testKiemTraCuoiCung() {
     await AuthService.dangKyDocGia({
         registrationToken: tokenDg2Final,
         email: emailDg2Final,
-        password: 'password123',
+        password: 'Password@123',
         hoLot: 'Phạm',
         ten: 'B',
         dienThoai: '0922222222',
+        loaiDocGia: 'sinhVien',
     });
     const dg2 = await DocGia.findOne({ email: emailDg2Final });
 
@@ -136,14 +138,14 @@ async function testKiemTraCuoiCung() {
     console.log('Case 4: Thu hồi quyền ngay lập tức đối với JWT đã cấp khi nhân viên nghỉ việc');
     const nvDangLam = await NhanVienService.taoNhanVien({
         hoTenNv: 'Nhân Viên Thu Hồi',
-        password: 'password123',
+        password: 'Password@123',
         chucVu: 'nhanVien',
         soDienThoai: '0933333333',
     });
 
     const loginNv = await AuthService.dangNhapNhanVien({
         msnv: nvDangLam.msnv,
-        password: 'password123',
+        password: 'Password@123',
     });
     assert(loginNv.token);
 

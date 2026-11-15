@@ -140,7 +140,6 @@ onMounted(() => {
             <template #content>
                 <div class="cr-flex-col cr-gap-md" style="padding: 1rem 0.5rem">
                     <div class="cr-items-center">
-                        <Tag value="CozyReads Library" severity="secondary" icon="pi pi-sparkles" />
                         <Tag value="Giữ sách trực tuyến 24h" severity="info" />
                     </div>
                     <h1 style="font-size: 2rem; font-weight: 800; color: var(--cr-text)">

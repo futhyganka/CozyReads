@@ -175,6 +175,77 @@ class MailService {
 
         return transporter.sendMail(mailOptions);
     }
+
+    /**
+     * Escape ký tự HTML nguy hiểm trước khi đưa vào nội dung Email HTML
+     */
+    static escapeHtml(str = '') {
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    /**
+     * Gửi email phản hồi yêu cầu liên hệ cho độc giả
+     * Chỉ đại diện cho Thư viện CozyReads, tuyệt đối không hiển thị thông tin nhân viên/Admin xử lý
+     */
+    static async guiEmailPhanHoiLienHe(email, { hoTen, maPhanHoi, noiDungPhanHoi }) {
+        const transporter = this.getTransporter();
+
+        const rawHoTen = (hoTen || 'Độc giả').trim();
+        const rawMaPhanHoi = String(maPhanHoi || '').trim();
+        const rawNoiDung = String(noiDungPhanHoi || '').trim();
+
+        const safeHoTen = this.escapeHtml(rawHoTen);
+        const safeMaPhanHoi = this.escapeHtml(rawMaPhanHoi);
+        const safeNoiDungHtml = this.escapeHtml(rawNoiDung).replace(/\r?\n/g, '<br/>');
+
+        const tieuDe = '[CozyReads] Phản hồi yêu cầu liên hệ';
+
+        const plainText = [
+            `Kính gửi ${rawHoTen},`,
+            '',
+            'Thư viện CozyReads xin phản hồi yêu cầu liên hệ của bạn như sau:',
+            '',
+            `Mã liên hệ: ${rawMaPhanHoi}`,
+            '',
+            'Nội dung phản hồi:',
+            '',
+            rawNoiDung,
+            '',
+            'Nếu cần hỗ trợ thêm, bạn có thể tiếp tục liên hệ với thư viện qua website CozyReads.',
+            '',
+            'Trân trọng,',
+            '',
+            'Thư viện CozyReads',
+        ].join('\n');
+
+        const htmlContent = `
+            <div>
+                <p>Kính gửi ${safeHoTen},</p>
+                <p>Thư viện CozyReads xin phản hồi yêu cầu liên hệ của bạn như sau:</p>
+                <p><strong>Mã liên hệ:</strong> ${safeMaPhanHoi}</p>
+                <p><strong>Nội dung phản hồi:</strong></p>
+                <p>${safeNoiDungHtml}</p>
+                <p>Nếu cần hỗ trợ thêm, bạn có thể tiếp tục liên hệ với thư viện qua website CozyReads.</p>
+                <p>Trân trọng,</p>
+                <p><strong>Thư viện CozyReads</strong></p>
+            </div>
+        `;
+
+        const mailOptions = {
+            from: `"CozyReads Library" <${config.email.user}>`,
+            to: email,
+            subject: tieuDe,
+            text: plainText,
+            html: htmlContent,
+        };
+
+        return transporter.sendMail(mailOptions);
+    }
 }
 
 module.exports = MailService;

@@ -5,6 +5,7 @@ import {
     TRANG_THAI_MUON_OPTIONS,
     LOAI_THANH_TOAN_OPTIONS,
     TRANG_THAI_THANH_TOAN_OPTIONS,
+    TRANG_THAI_PHAN_HOI_OPTIONS,
     PHUONG_THUC_THANH_TOAN_OPTIONS,
     ALL_GOI_GIA_HAN_MAP,
     THANG_DIEM_MUON_SACH,
@@ -78,6 +79,15 @@ export function getLoaiThanhToanMeta(val) {
 export function getTrangThaiThanhToanMeta(val) {
     return (
         TRANG_THAI_THANH_TOAN_OPTIONS.find((o) => o.value === val) || {
+            label: val || 'Không rõ',
+            severity: 'secondary',
+        }
+    );
+}
+
+export function getTrangThaiPhanHoiMeta(val) {
+    return (
+        TRANG_THAI_PHAN_HOI_OPTIONS.find((o) => o.value === val) || {
             label: val || 'Không rõ',
             severity: 'secondary',
         }

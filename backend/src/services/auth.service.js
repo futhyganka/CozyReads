@@ -170,7 +170,6 @@ class AuthService {
             ten,
             dienThoai,
             loaiDocGia = LOAI_DOC_GIA.DOCGIA_TUDO,
-            chuKyThanhToan = '1_thang',
             diaChi = '',
             ngaySinh = null,
             phai = 'khac',
@@ -186,6 +185,12 @@ class AuthService {
 
         if (!password) {
             throw new ApiError(400, 'Mật khẩu là bắt buộc.');
+        }
+        if (!REGEX.MAT_KHAU.test(password)) {
+            throw new ApiError(
+                400,
+                'Mật khẩu phải từ 8 ký tự trở lên, bao gồm chữ thường, chữ hoa, chữ số, ký tự đặc biệt và không chứa khoảng trắng.',
+            );
         }
         if (!dienThoai || !dienThoai.trim()) {
             throw new ApiError(400, 'Số điện thoại độc giả là bắt buộc.');
@@ -215,16 +220,18 @@ class AuthService {
         const hashedPassword = await this.bamMatKhau(password);
         const maDocGia = await this.taoMaDocGia();
 
-        // Tính ngày hết hạn thẻ ban đầu
-        let ngayHetHanThe = undefined;
-        if (loaiDocGia === LOAI_DOC_GIA.DOCGIA_TUDO) {
-            const thongTinGoi = GOI_GIA_HAN[chuKyThanhToan] || GOI_GIA_HAN['1_thang'];
-            const soNgay = thongTinGoi ? thongTinGoi.soNgay : 30;
-            ngayHetHanThe = new Date(Date.now() + soNgay * 24 * 60 * 60 * 1000);
-        } else {
+        // Tính ngày hết hạn thẻ ban đầu:
+        // - Độc giả tự do đăng ký online không chọn gói lúc tạo tài khoản -> ngayHetHanThe = null, chuKyThanhToan = null (chờ đăng ký gói và thanh toán sau)
+        // - Sinh viên / Giảng viên / Nhân viên -> miễn phí 6 tháng (180 ngày)
+        let ngayHetHanThe = null;
+        let ngayBatDauKyThanhToan = null;
+        let chuKy = null;
+        if (loaiDocGia !== LOAI_DOC_GIA.DOCGIA_TUDO) {
             const goiMienPhi = GOI_GIA_HAN['6_thang_mien_phi'] || GOI_GIA_HAN['6_thang'];
             const soNgay = goiMienPhi ? goiMienPhi.soNgay : 180;
+            ngayBatDauKyThanhToan = new Date();
             ngayHetHanThe = new Date(Date.now() + soNgay * 24 * 60 * 60 * 1000);
+            chuKy = '6_thang_mien_phi';
         }
 
         const docGia = new DocGia({
@@ -238,7 +245,8 @@ class AuthService {
             email: verifiedEmail,
             password: hashedPassword,
             avatar,
-            chuKyThanhToan: loaiDocGia === LOAI_DOC_GIA.DOCGIA_TUDO ? chuKyThanhToan : '6_thang_mien_phi',
+            chuKyThanhToan: chuKy,
+            ngayBatDauKyThanhToan,
             ngayHetHanThe,
             loaiDocGia,
             diemDocGia: DIEM.MAC_DINH,
@@ -377,8 +385,11 @@ class AuthService {
             );
         }
 
-        if (matKhauMoi.length < 6) {
-            throw new ApiError(400, 'Mật khẩu mới phải có ít nhất 6 ký tự.');
+        if (!REGEX.MAT_KHAU.test(matKhauMoi)) {
+            throw new ApiError(
+                400,
+                'Mật khẩu mới phải từ 8 ký tự trở lên, bao gồm chữ thường, chữ hoa, chữ số, ký tự đặc biệt và không chứa khoảng trắng.',
+            );
         }
 
         const normalizedEmail = email.trim().toLowerCase();

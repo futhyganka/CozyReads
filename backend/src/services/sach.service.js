@@ -2,6 +2,68 @@ const { Sach, TacGia, DanhMuc, NhaXuatBan, TheoDoiMuonSach } = require('../model
 const ApiError = require('../api-error');
 
 class SachService {
+    static extractObjectId(val) {
+        if (!val) return null;
+        const mongoose = require('mongoose');
+        if (val instanceof mongoose.Types.ObjectId) return val;
+        if (Array.isArray(val)) return this.extractObjectId(val[0]);
+        if (typeof val === 'object' && (val._id || val.$oid)) {
+            const idStr = String(val._id || val.$oid);
+            return mongoose.Types.ObjectId.isValid(idStr)
+                ? new mongoose.Types.ObjectId(idStr)
+                : null;
+        }
+        if (typeof val === 'string' && mongoose.Types.ObjectId.isValid(val)) {
+            return new mongoose.Types.ObjectId(val);
+        }
+        return null;
+    }
+
+    /**
+     * Đồng bộ dữ liệu sách cũ dùng trường maTG / maDM hoặc định dạng {_id: '...'} sang ObjectId chuẩn
+     */
+    static async chuanHoaDuLieuSachCu() {
+        const mongoose = require('mongoose');
+        const docs = await Sach.collection.find({}).toArray();
+
+        for (const doc of docs) {
+            const updateFields = {};
+            const tgObjId = this.extractObjectId(doc.tacGia || doc.maTG);
+            if (
+                tgObjId &&
+                (!(doc.tacGia instanceof mongoose.Types.ObjectId) ||
+                    doc.tacGia.toString() !== tgObjId.toString())
+            ) {
+                updateFields.tacGia = tgObjId;
+            }
+
+            const dmObjId = this.extractObjectId(doc.danhMuc || doc.maDM);
+            if (
+                dmObjId &&
+                (!(doc.danhMuc instanceof mongoose.Types.ObjectId) ||
+                    doc.danhMuc.toString() !== dmObjId.toString())
+            ) {
+                updateFields.danhMuc = dmObjId;
+            }
+
+            const nxbObjId = this.extractObjectId(doc.maNXB);
+            if (
+                nxbObjId &&
+                (!(doc.maNXB instanceof mongoose.Types.ObjectId) ||
+                    doc.maNXB.toString() !== nxbObjId.toString())
+            ) {
+                updateFields.maNXB = nxbObjId;
+            }
+
+            if (Object.keys(updateFields).length > 0) {
+                await Sach.collection.updateOne(
+                    { _id: doc._id },
+                    { $set: updateFields },
+                );
+            }
+        }
+    }
+
     static async taoMaSach() {
         const prefix = 'MS';
         const sachs = await Sach.find({}, { maSach: 1, _id: 0 }).lean();
@@ -116,6 +178,7 @@ class SachService {
         page = 1,
         limit = 10,
     }) {
+        await this.chuanHoaDuLieuSachCu();
         const filter = {};
         if (search) {
             filter.$or = [
@@ -151,7 +214,7 @@ class SachService {
                 .populate('maNXB', 'tenNxb maNXB diaChi')
                 .skip(skip)
                 .limit(Number(limit))
-                .sort({ createdAt: -1 }),
+                .sort({ hinhAnh: -1, createdAt: -1 }),
             Sach.countDocuments(filter),
         ]);
 
@@ -164,6 +227,7 @@ class SachService {
     }
 
     static async getChiTietSach(idOrMa) {
+        await this.chuanHoaDuLieuSachCu();
         let sach = null;
         if (idOrMa.match(/^[0-9a-fA-F]{24}$/)) {
             sach = await Sach.findById(idOrMa)

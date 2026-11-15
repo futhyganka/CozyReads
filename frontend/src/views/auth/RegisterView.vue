@@ -18,9 +18,9 @@ import Tag from 'primevue/tag';
 import authService from '@/services/auth.service';
 import {
     LOAI_DOC_GIA_OPTIONS,
-    GOI_GIA_HAN_OPTIONS,
     PHAI_OPTIONS,
     REGEX,
+    validatePasswordStrength,
 } from '@/utils/constants';
 
 const router = useRouter();
@@ -45,11 +45,122 @@ const form = reactive({
     password: '',
     confirmPassword: '',
     loaiDocGia: 'docGia_tuDo',
-    chuKyThanhToan: '1_thang',
     ngaySinh: null,
     phai: 'khac',
     diaChi: '',
 });
+
+const errors = reactive({
+    email: '',
+    otpCode: '',
+    hoLot: '',
+    ten: '',
+    dienThoai: '',
+    phai: '',
+    ngaySinh: '',
+    loaiDocGia: '',
+    diaChi: '',
+    password: '',
+    confirmPassword: '',
+});
+
+function validateField(field) {
+    switch (field) {
+        case 'email': {
+            const val = form.email.trim();
+            if (!val) {
+                errors.email = 'Vui lòng nhập địa chỉ email.';
+            } else if (!REGEX.EMAIL.test(val.toLowerCase())) {
+                errors.email = 'Địa chỉ email không hợp lệ (VD: tenban@example.com).';
+            } else {
+                errors.email = '';
+            }
+            return !errors.email;
+        }
+        case 'otpCode': {
+            const val = otpCode.value.trim();
+            if (!val) {
+                errors.otpCode = 'Vui lòng nhập mã xác thực OTP.';
+            } else if (!/^\d{6}$/.test(val)) {
+                errors.otpCode = 'Mã OTP phải gồm đúng 6 chữ số.';
+            } else {
+                errors.otpCode = '';
+            }
+            return !errors.otpCode;
+        }
+        case 'hoLot': {
+            errors.hoLot = !form.hoLot.trim()
+                ? 'Vui lòng nhập họ và tên lót.'
+                : '';
+            return !errors.hoLot;
+        }
+        case 'ten': {
+            errors.ten = !form.ten.trim() ? 'Vui lòng nhập tên.' : '';
+            return !errors.ten;
+        }
+        case 'dienThoai': {
+            const val = form.dienThoai.trim();
+            if (!val) {
+                errors.dienThoai = 'Vui lòng nhập số điện thoại.';
+            } else if (!REGEX.SO_DIEN_THOAI.test(val)) {
+                errors.dienThoai =
+                    'Số điện thoại không hợp lệ (10 chữ số, bắt đầu bằng 03, 05, 07, 08, 09).';
+            } else {
+                errors.dienThoai = '';
+            }
+            return !errors.dienThoai;
+        }
+        case 'ngaySinh': {
+            if (form.ngaySinh && new Date(form.ngaySinh) > new Date()) {
+                errors.ngaySinh = 'Ngày sinh không được lớn hơn ngày hiện tại.';
+            } else {
+                errors.ngaySinh = '';
+            }
+            return !errors.ngaySinh;
+        }
+        case 'password': {
+            errors.password = validatePasswordStrength(form.password, 'Mật khẩu');
+            if (form.confirmPassword) {
+                errors.confirmPassword =
+                    form.confirmPassword !== form.password
+                        ? 'Mật khẩu xác nhận không khớp.'
+                        : '';
+            }
+            return !errors.password;
+        }
+        case 'confirmPassword': {
+            if (!form.confirmPassword) {
+                errors.confirmPassword = 'Vui lòng nhập xác nhận mật khẩu.';
+            } else if (form.confirmPassword !== form.password) {
+                errors.confirmPassword = 'Mật khẩu xác nhận không khớp.';
+            } else {
+                errors.confirmPassword = '';
+            }
+            return !errors.confirmPassword;
+        }
+        default:
+            errors[field] = '';
+            return true;
+    }
+}
+
+function validateStep3() {
+    const fields = [
+        'hoLot',
+        'ten',
+        'dienThoai',
+        'ngaySinh',
+        'password',
+        'confirmPassword',
+    ];
+    let isValid = true;
+    for (const f of fields) {
+        if (!validateField(f)) {
+            isValid = false;
+        }
+    }
+    return isValid;
+}
 
 function startCooldown(seconds = 60) {
     cooldown.value = seconds;
@@ -69,11 +180,10 @@ onUnmounted(() => {
 
 async function handleSendOtp() {
     errorMsg.value = '';
-    const trimmedEmail = form.email.trim().toLowerCase();
-    if (!REGEX.EMAIL.test(trimmedEmail)) {
-        errorMsg.value = 'Vui lòng nhập địa chỉ email hợp lệ.';
+    if (!validateField('email')) {
         return;
     }
+    const trimmedEmail = form.email.trim().toLowerCase();
 
     loading.value = true;
     try {
@@ -88,6 +198,7 @@ async function handleSendOtp() {
         });
         activeStep.value = '2';
     } catch (err) {
+        errors.email = err.message;
         errorMsg.value = err.message;
     } finally {
         loading.value = false;
@@ -96,17 +207,17 @@ async function handleSendOtp() {
 
 async function handleVerifyOtp() {
     errorMsg.value = '';
-    const trimmedOtp = otpCode.value.trim();
-    if (!/^\d{6}$/.test(trimmedOtp)) {
-        errorMsg.value = 'Mã OTP phải gồm đúng 6 chữ số.';
+    if (!validateField('otpCode')) {
         return;
     }
+    const trimmedOtp = otpCode.value.trim();
 
     loading.value = true;
     try {
         const res = await authService.xacThucOtp(form.email, trimmedOtp);
         registrationToken.value = res.registrationToken || res.verificationToken;
         otpCode.value = '';
+        errors.otpCode = '';
         toast.add({
             severity: 'success',
             summary: 'Xác thực thành công',
@@ -115,6 +226,7 @@ async function handleVerifyOtp() {
         });
         activeStep.value = '3';
     } catch (err) {
+        errors.otpCode = err.message;
         errorMsg.value = err.message;
     } finally {
         loading.value = false;
@@ -123,21 +235,7 @@ async function handleVerifyOtp() {
 
 async function handleCompleteRegistration() {
     errorMsg.value = '';
-    if (!form.hoLot.trim() || !form.ten.trim()) {
-        errorMsg.value = 'Họ lót và tên là bắt buộc.';
-        return;
-    }
-    if (!REGEX.SO_DIEN_THOAI.test(form.dienThoai.trim())) {
-        errorMsg.value =
-            'Số điện thoại không hợp lệ (gồm 10 chữ số, bắt đầu bằng 03, 05, 07, 08, 09).';
-        return;
-    }
-    if (!form.password || form.password.length < 6) {
-        errorMsg.value = 'Mật khẩu phải có ít nhất 6 ký tự.';
-        return;
-    }
-    if (form.password !== form.confirmPassword) {
-        errorMsg.value = 'Mật khẩu xác nhận không khớp.';
+    if (!validateStep3()) {
         return;
     }
 
@@ -151,10 +249,6 @@ async function handleCompleteRegistration() {
             dienThoai: form.dienThoai.trim(),
             password: form.password,
             loaiDocGia: form.loaiDocGia,
-            chuKyThanhToan:
-                form.loaiDocGia === 'docGia_tuDo'
-                    ? form.chuKyThanhToan
-                    : '6_thang_mien_phi',
             ngaySinh: form.ngaySinh || null,
             phai: form.phai,
             diaChi: form.diaChi.trim(),
@@ -211,6 +305,14 @@ async function handleCompleteRegistration() {
                     <Tag :value="registeredResult.maDocGia" severity="success" style="font-size: 1.2rem; padding: 0.5rem 1rem" />
                     <span class="cr-muted">Email: {{ registeredResult.email }}</span>
                 </div>
+                <Message
+                    v-if="form.loaiDocGia === 'docGia_tuDo'"
+                    severity="info"
+                    :closable="false"
+                    style="text-align: left"
+                >
+                    Đối với <strong>Độc giả tự do</strong>, sau khi đăng nhập vui lòng vào hồ sơ chọn mục <strong>Thẻ & Điểm uy tín</strong> trong <strong>Tài khoản & Thẻ thư viện</strong> để chọn gói thẻ và hoàn tất thanh toán hoặc thực hiện tạo thẻ trực tiếp tại quầy để sử dụng dịch vụ thư viện.
+                </Message>
                 <Button
                     label="Đăng nhập ngay"
                     icon="pi pi-sign-in"
@@ -229,19 +331,27 @@ async function handleCompleteRegistration() {
                     <StepPanel value="1">
                         <form
                             class="cr-flex-col cr-gap-md"
+                            novalidate
                             @submit.prevent="handleSendOtp"
                         >
                             <div class="cr-field">
                                 <label class="cr-label" for="reg-email">
-                                    Địa chỉ Email xác thực
+                                    Địa chỉ Email xác thực *
                                 </label>
                                 <InputText
                                     id="reg-email"
                                     v-model="form.email"
                                     type="email"
                                     placeholder="nhapemail@example.com"
+                                    :invalid="!!errors.email"
+                                    :class="{ 'cr-input-invalid': !!errors.email }"
                                     fluid
+                                    @update:modelValue="validateField('email')"
+                                    @blur="validateField('email')"
                                 />
+                                <small v-if="errors.email" class="cr-error">
+                                    {{ errors.email }}
+                                </small>
                                 <span class="cr-muted">
                                     Hệ thống sẽ gửi mã OTP 6 chữ số có hiệu lực trong 5 phút tới email này.
                                 </span>
@@ -260,6 +370,7 @@ async function handleCompleteRegistration() {
                     <StepPanel value="2">
                         <form
                             class="cr-flex-col cr-gap-md"
+                            novalidate
                             @submit.prevent="handleVerifyOtp"
                         >
                             <Message severity="info" :closable="false">
@@ -268,39 +379,25 @@ async function handleCompleteRegistration() {
 
                             <div class="cr-field">
                                 <label class="cr-label" for="reg-otp">
-                                    Mã OTP (6 chữ số)
+                                    Mã OTP (6 chữ số) *
                                 </label>
                                 <InputText
                                     id="reg-otp"
                                     v-model="otpCode"
                                     maxlength="6"
                                     placeholder="Nhập 6 chữ số OTP"
+                                    :invalid="!!errors.otpCode"
+                                    :class="{ 'cr-input-invalid': !!errors.otpCode }"
                                     fluid
+                                    @update:modelValue="validateField('otpCode')"
+                                    @blur="validateField('otpCode')"
                                 />
+                                <small v-if="errors.otpCode" class="cr-error">
+                                    {{ errors.otpCode }}
+                                </small>
                             </div>
 
-                            <div class="cr-flex cr-gap-sm">
-                                <Button
-                                    type="button"
-                                    label="Đổi Email"
-                                    icon="pi pi-arrow-left"
-                                    severity="secondary"
-                                    outlined
-                                    @click="activeStep = '1'"
-                                />
-                                <Button
-                                    type="button"
-                                    :label="
-                                        cooldown > 0
-                                            ? `Gửi lại (${cooldown}s)`
-                                            : 'Gửi lại OTP'
-                                    "
-                                    icon="pi pi-refresh"
-                                    severity="secondary"
-                                    outlined
-                                    :disabled="cooldown > 0 || loading"
-                                    @click="handleSendOtp"
-                                />
+                            <div class="cr-flex-col cr-gap-sm">
                                 <Button
                                     type="submit"
                                     label="Xác thực OTP"
@@ -308,6 +405,31 @@ async function handleCompleteRegistration() {
                                     :loading="loading"
                                     fluid
                                 />
+                                <div class="cr-grid-2 cr-gap-sm">
+                                    <Button
+                                        type="button"
+                                        label="Đổi Email"
+                                        icon="pi pi-arrow-left"
+                                        severity="secondary"
+                                        outlined
+                                        fluid
+                                        @click="activeStep = '1'"
+                                    />
+                                    <Button
+                                        type="button"
+                                        :label="
+                                            cooldown > 0
+                                                ? `Gửi lại (${cooldown}s)`
+                                                : 'Gửi lại OTP'
+                                        "
+                                        icon="pi pi-refresh"
+                                        severity="secondary"
+                                        outlined
+                                        fluid
+                                        :disabled="cooldown > 0 || loading"
+                                        @click="handleSendOtp"
+                                    />
+                                </div>
                             </div>
                         </form>
                     </StepPanel>
@@ -315,6 +437,7 @@ async function handleCompleteRegistration() {
                     <StepPanel value="3">
                         <form
                             class="cr-flex-col cr-gap-md"
+                            novalidate
                             @submit.prevent="handleCompleteRegistration"
                         >
                             <div class="cr-form-grid">
@@ -323,16 +446,30 @@ async function handleCompleteRegistration() {
                                     <InputText
                                         v-model="form.hoLot"
                                         placeholder="VD: Nguyễn Văn"
+                                        :invalid="!!errors.hoLot"
+                                        :class="{ 'cr-input-invalid': !!errors.hoLot }"
                                         fluid
+                                        @update:modelValue="validateField('hoLot')"
+                                        @blur="validateField('hoLot')"
                                     />
+                                    <small v-if="errors.hoLot" class="cr-error">
+                                        {{ errors.hoLot }}
+                                    </small>
                                 </div>
                                 <div class="cr-field">
                                     <label class="cr-label">Tên *</label>
                                     <InputText
                                         v-model="form.ten"
                                         placeholder="VD: An"
+                                        :invalid="!!errors.ten"
+                                        :class="{ 'cr-input-invalid': !!errors.ten }"
                                         fluid
+                                        @update:modelValue="validateField('ten')"
+                                        @blur="validateField('ten')"
                                     />
+                                    <small v-if="errors.ten" class="cr-error">
+                                        {{ errors.ten }}
+                                    </small>
                                 </div>
 
                                 <div class="cr-field">
@@ -340,9 +477,16 @@ async function handleCompleteRegistration() {
                                     <InputText
                                         v-model="form.dienThoai"
                                         maxlength="10"
-                                        placeholder="09xxxxxxxx"
+                                        placeholder="10 chữ số (bắt đầu 03, 05, 07, 08, 09)"
+                                        :invalid="!!errors.dienThoai"
+                                        :class="{ 'cr-input-invalid': !!errors.dienThoai }"
                                         fluid
+                                        @update:modelValue="validateField('dienThoai')"
+                                        @blur="validateField('dienThoai')"
                                     />
+                                    <small v-if="errors.dienThoai" class="cr-error">
+                                        {{ errors.dienThoai }}
+                                    </small>
                                 </div>
                                 <div class="cr-field">
                                     <label class="cr-label">Giới tính</label>
@@ -351,8 +495,14 @@ async function handleCompleteRegistration() {
                                         :options="PHAI_OPTIONS"
                                         optionLabel="label"
                                         optionValue="value"
+                                        :invalid="!!errors.phai"
+                                        :class="{ 'cr-input-invalid': !!errors.phai }"
                                         fluid
+                                        @update:modelValue="validateField('phai')"
                                     />
+                                    <small v-if="errors.phai" class="cr-error">
+                                        {{ errors.phai }}
+                                    </small>
                                 </div>
 
                                 <div class="cr-field">
@@ -361,8 +511,14 @@ async function handleCompleteRegistration() {
                                         v-model="form.ngaySinh"
                                         dateFormat="dd/mm/yy"
                                         showIcon
+                                        :invalid="!!errors.ngaySinh"
+                                        :class="{ 'cr-input-invalid': !!errors.ngaySinh }"
                                         fluid
+                                        @update:modelValue="validateField('ngaySinh')"
                                     />
+                                    <small v-if="errors.ngaySinh" class="cr-error">
+                                        {{ errors.ngaySinh }}
+                                    </small>
                                 </div>
                                 <div class="cr-field">
                                     <label class="cr-label">Đối tượng độc giả</label>
@@ -371,22 +527,14 @@ async function handleCompleteRegistration() {
                                         :options="LOAI_DOC_GIA_OPTIONS"
                                         optionLabel="label"
                                         optionValue="value"
+                                        :invalid="!!errors.loaiDocGia"
+                                        :class="{ 'cr-input-invalid': !!errors.loaiDocGia }"
                                         fluid
+                                        @update:modelValue="validateField('loaiDocGia')"
                                     />
-                                </div>
-
-                                <div
-                                    v-if="form.loaiDocGia === 'docGia_tuDo'"
-                                    class="cr-field cr-field-full"
-                                >
-                                    <label class="cr-label">Chu kỳ gói thẻ tự do</label>
-                                    <Select
-                                        v-model="form.chuKyThanhToan"
-                                        :options="GOI_GIA_HAN_OPTIONS"
-                                        optionLabel="label"
-                                        optionValue="value"
-                                        fluid
-                                    />
+                                    <small v-if="errors.loaiDocGia" class="cr-error">
+                                        {{ errors.loaiDocGia }}
+                                    </small>
                                 </div>
 
                                 <div class="cr-field cr-field-full">
@@ -394,8 +542,15 @@ async function handleCompleteRegistration() {
                                     <InputText
                                         v-model="form.diaChi"
                                         placeholder="Số nhà, đường, quận/huyện, tỉnh/thành phố"
+                                        :invalid="!!errors.diaChi"
+                                        :class="{ 'cr-input-invalid': !!errors.diaChi }"
                                         fluid
+                                        @update:modelValue="validateField('diaChi')"
+                                        @blur="validateField('diaChi')"
                                     />
+                                    <small v-if="errors.diaChi" class="cr-error">
+                                        {{ errors.diaChi }}
+                                    </small>
                                 </div>
 
                                 <div class="cr-field">
@@ -404,9 +559,16 @@ async function handleCompleteRegistration() {
                                         v-model="form.password"
                                         toggleMask
                                         :feedback="false"
-                                        placeholder="Tối thiểu 6 ký tự"
+                                        placeholder="Từ 8 ký tự, gồm hoa, thường, số, ký tự đặc biệt"
+                                        :invalid="!!errors.password"
+                                        :class="{ 'cr-input-invalid': !!errors.password }"
                                         fluid
+                                        @update:modelValue="validateField('password')"
+                                        @blur="validateField('password')"
                                     />
+                                    <small v-if="errors.password" class="cr-error">
+                                        {{ errors.password }}
+                                    </small>
                                 </div>
                                 <div class="cr-field">
                                     <label class="cr-label">Xác nhận mật khẩu *</label>
@@ -415,8 +577,15 @@ async function handleCompleteRegistration() {
                                         toggleMask
                                         :feedback="false"
                                         placeholder="Nhập lại mật khẩu"
+                                        :invalid="!!errors.confirmPassword"
+                                        :class="{ 'cr-input-invalid': !!errors.confirmPassword }"
                                         fluid
+                                        @update:modelValue="validateField('confirmPassword')"
+                                        @blur="validateField('confirmPassword')"
                                     />
+                                    <small v-if="errors.confirmPassword" class="cr-error">
+                                        {{ errors.confirmPassword }}
+                                    </small>
                                 </div>
                             </div>
 

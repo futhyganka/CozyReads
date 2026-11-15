@@ -100,6 +100,23 @@ export const TRANG_THAI_THANH_TOAN_OPTIONS = [
     { label: 'Đã hủy', value: 'daHuy', severity: 'danger' },
 ];
 
+export const LOAI_PHAN_HOI = {
+    LIEN_HE: 'lienHe',
+    GOP_Y: 'gopY',
+};
+
+export const TRANG_THAI_PHAN_HOI = {
+    CHO_XU_LY: 'choXuLy',
+    DANG_XU_LY: 'dangXuLy',
+    DA_XU_LY: 'daXuLy',
+};
+
+export const TRANG_THAI_PHAN_HOI_OPTIONS = [
+    { label: 'Chờ xử lý', value: 'choXuLy', severity: 'warn' },
+    { label: 'Đang xử lý', value: 'dangXuLy', severity: 'info' },
+    { label: 'Đã xử lý', value: 'daXuLy', severity: 'success' },
+];
+
 export const PHUONG_THUC_THANH_TOAN_OPTIONS = [
     { label: 'Tiền mặt tại quầy', value: 'tienMat' },
     { label: 'Chuyển khoản ngân hàng', value: 'chuyenKhoan' },
@@ -122,4 +139,23 @@ export const THANG_DIEM_MUON_SACH = [
 export const REGEX = {
     SO_DIEN_THOAI: /^0[35789]\d{8}$/,
     EMAIL: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+    MAT_KHAU: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9\s])\S{8,}$/,
 };
+
+export function validatePasswordStrength(password, label = 'Mật khẩu') {
+    if (!password) {
+        return `${label} không được để trống.`;
+    }
+    const missing = [];
+    if (password.length < 8) missing.push('• Từ 8 ký tự trở lên');
+    if (!/[a-z]/.test(password)) missing.push('• Có ít nhất 1 chữ thường (a-z)');
+    if (!/[A-Z]/.test(password)) missing.push('• Có ít nhất 1 chữ hoa (A-Z)');
+    if (!/\d/.test(password)) missing.push('• Có ít nhất 1 chữ số (0-9)');
+    if (!/[^A-Za-z0-9\s]/.test(password)) missing.push('• Có ít nhất 1 ký tự đặc biệt (!@#$...)');
+    if (/\s/.test(password)) missing.push("• Không được chứa khoảng trắng (' ')");
+
+    if (missing.length > 0) {
+        return `${label} chưa đáp ứng các ràng buộc:\n${missing.join('\n')}`;
+    }
+    return '';
+}

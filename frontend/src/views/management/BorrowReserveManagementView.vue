@@ -50,7 +50,6 @@ const editingBorrow = ref(null);
 const editForm = reactive({
     trangThai: '',
     ngayHenTra: null,
-    ghiChu: '',
 });
 
 async function fetchBorrows() {
@@ -198,9 +197,6 @@ function openEditBorrowDialog(item) {
     editingBorrow.value = item;
     editForm.trangThai = item.trangThai;
     editForm.ngayHenTra = item.ngayHenTra ? new Date(item.ngayHenTra) : null;
-    editForm.ghiChu = Array.isArray(item.ghiChu)
-        ? item.ghiChu.join(' ')
-        : item.ghiChu || '';
     editDialogVisible.value = true;
 }
 
@@ -211,7 +207,6 @@ async function handleUpdateBorrow() {
         await muonTraService.capNhatPhieuMuon(editingBorrow.value._id, {
             trangThai: editForm.trangThai,
             ngayHenTra: editForm.ngayHenTra,
-            ghiChu: editForm.ghiChu,
         });
         editDialogVisible.value = false;
         toast.add({
@@ -487,10 +482,6 @@ onMounted(() => {
                     showIcon
                     fluid
                 />
-            </div>
-            <div class="cr-field">
-                <label class="cr-label">Ghi chú</label>
-                <InputText v-model="editForm.ghiChu" fluid />
             </div>
             <div class="cr-flex cr-gap-sm" style="justify-content: flex-end">
                 <Button

@@ -110,11 +110,24 @@ onMounted(async () => {
                         </div>
                         <div class="cr-flex-between">
                             <span class="cr-muted">Chu kỳ gia hạn:</span>
-                            <strong>{{ getGoiGiaHanLabel(profile.chuKyThanhToan) }}</strong>
+                            <strong>
+                                {{
+                                    profile.chuKyThanhToan
+                                        ? getGoiGiaHanLabel(profile.chuKyThanhToan)
+                                        : 'Chưa đăng ký gói'
+                                }}
+                            </strong>
                         </div>
                         <div class="cr-flex-between">
                             <span class="cr-muted">Ngày hết hạn thẻ:</span>
-                            <strong>{{ formatDate(profile.ngayHetHanThe) }}</strong>
+                            <strong v-if="profile.ngayHetHanThe">
+                                {{ formatDate(profile.ngayHetHanThe) }}
+                            </strong>
+                            <Tag
+                                v-else
+                                value="Chưa kích hoạt gói thẻ"
+                                severity="warn"
+                            />
                         </div>
                     </div>
                 </template>
@@ -149,11 +162,29 @@ onMounted(async () => {
 
         <!-- Gia hạn thẻ dành cho Độc giả tự do -->
         <Card v-if="profile.loaiDocGia === 'docGia_tuDo'">
-            <template #title>Đăng ký Gia hạn Thẻ Độc giả Tự do</template>
+            <template #title>
+                {{
+                    profile.ngayHetHanThe
+                        ? 'Đăng ký Gia hạn Thẻ Độc giả Tự do'
+                        : 'Đăng ký Gói Kích hoạt Thẻ Độc giả Tự do'
+                }}
+            </template>
             <template #subtitle>
-                Tạo yêu cầu thanh toán phí gia hạn chu kỳ thẻ
+                {{
+                    profile.ngayHetHanThe
+                        ? 'Tạo yêu cầu thanh toán phí gia hạn chu kỳ thẻ'
+                        : 'Chọn gói thẻ và tạo yêu cầu thanh toán để kích hoạt quyền đặt giữ / mượn sách'
+                }}
             </template>
             <template #content>
+                <Message
+                    v-if="!profile.ngayHetHanThe"
+                    severity="warn"
+                    :closable="false"
+                    style="margin-bottom: 1rem"
+                >
+                    Thẻ Độc giả tự do của bạn mới tạo và <strong>chưa kích hoạt gói sử dụng</strong>. Vui lòng chọn chu kỳ gói bên dưới, tạo yêu cầu thanh toán và hoàn tất đóng phí tại quầy thư viện để bắt đầu đặt giữ hoặc mượn sách.
+                </Message>
                 <div class="cr-form-grid">
                     <div class="cr-field">
                         <label class="cr-label">Chọn gói chu kỳ gia hạn</label>

@@ -145,17 +145,18 @@ async function testCRUDToanBo() {
     const dgOnline = await AuthService.dangKyDocGia({
         registrationToken: tokenOnline,
         email: emailOnline,
-        password: 'onlinePassword123',
+        password: 'OnlinePass@123',
         hoLot: 'Ngô',
         ten: 'Bảo',
         dienThoai: '0977112233',
+        loaiDocGia: 'sinhVien',
     });
     assert(dgOnline.maDocGia);
     const docGiaOnlineDoc = await DocGia.findOne({ email: emailOnline });
 
     const dgLogin = await AuthService.dangNhapDocGia({
         email: 'online_reader@gmail.com',
-        password: 'onlinePassword123',
+        password: 'OnlinePass@123',
     });
     assert.strictEqual(dgLogin.role, 'docGia');
     assert(dgLogin.token);

@@ -1,4 +1,29 @@
 const NhanVienService = require('../services/nhanvien.service');
+const ApiError = require('../api-error');
+
+function damBaoQuyenTruyCapNhanVien(req, targetIdOrMsnv) {
+    const callerRole = req.user?.role || req.user?.maVaiTro;
+    // Admin có toàn quyền quản lý nhân viên
+    if (callerRole === 'quanTriVien') {
+        return;
+    }
+    // Nhân viên chỉ được xem/sửa đúng hồ sơ của chính mình
+    const callerId = req.user?._id?.toString();
+    const callerMsnv = req.user?.msnv?.toUpperCase();
+    const target = String(targetIdOrMsnv || '').trim();
+
+    if (
+        callerRole === 'nhanVien' &&
+        ((callerId && callerId === target) ||
+            (callerMsnv && callerMsnv === target.toUpperCase()))
+    ) {
+        return;
+    }
+    throw new ApiError(
+        403,
+        'Bạn không có quyền xem hoặc chỉnh sửa thông tin của nhân viên khác.',
+    );
+}
 
 class NhanVienController {
     // [GET] /api/nhanviens
@@ -20,6 +45,7 @@ class NhanVienController {
     // [GET] /api/nhanviens/:id
     static async getChiTietNhanVien(req, res, next) {
         try {
+            damBaoQuyenTruyCapNhanVien(req, req.params.id);
             const nv = await NhanVienService.getChiTietNhanVien(req.params.id);
             res.json({ success: true, data: nv });
         } catch (error) {
@@ -44,6 +70,7 @@ class NhanVienController {
     // [PUT] /api/nhanviens/:id
     static async capNhatNhanVien(req, res, next) {
         try {
+            damBaoQuyenTruyCapNhanVien(req, req.params.id);
             const callerRole = req.user?.role || req.user?.maVaiTro;
             const nv = await NhanVienService.capNhatNhanVien(
                 req.params.id,
@@ -73,6 +100,7 @@ class NhanVienController {
     // [POST] /api/nhanviens/:id/doi-mat-khau
     static async doiMatKhau(req, res, next) {
         try {
+            damBaoQuyenTruyCapNhanVien(req, req.params.id);
             const ketQua = await NhanVienService.doiMatKhau(
                 req.params.id,
                 req.body,

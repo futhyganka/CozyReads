@@ -14,17 +14,25 @@ const authStore = useAuthStore();
 
 onMounted(() => {
     registerUnauthorizedHandler((msg) => {
-        if (authStore.isAuthenticated) {
-            const wasStaffArea =
-                route.path.startsWith('/quan-ly') || authStore.isStaff;
-            authStore.clearSession();
+        const isStaffArea = route.path.startsWith('/quan-ly');
+        if (isStaffArea && authStore.isStaff) {
+            authStore.clearStaffSession();
             toast.add({
                 severity: 'warn',
-                summary: 'Phiên đăng nhập hết hạn',
+                summary: 'Phiên đăng nhập nhân viên hết hạn',
                 detail: msg || 'Vui lòng đăng nhập lại để tiếp tục.',
                 life: 4000,
             });
-            router.push(wasStaffArea ? '/quan-ly/dang-nhap' : '/dang-nhap');
+            router.push('/quan-ly/dang-nhap');
+        } else if (!isStaffArea && authStore.isReader) {
+            authStore.clearReaderSession();
+            toast.add({
+                severity: 'warn',
+                summary: 'Phiên đăng nhập độc giả hết hạn',
+                detail: msg || 'Vui lòng đăng nhập lại để tiếp tục.',
+                life: 4000,
+            });
+            router.push('/dang-nhap');
         }
     });
 });

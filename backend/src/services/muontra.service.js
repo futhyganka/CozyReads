@@ -38,6 +38,14 @@ class MuonTraService {
             throw new ApiError(403, 'Thẻ độc giả đã bị hủy.');
         }
 
+        // 2b. Độc giả tự do bắt buộc phải đã kích hoạt gói thẻ trước khi đặt giữ / mượn sách
+        if (docGia.loaiDocGia === 'docGia_tuDo' && !docGia.ngayHetHanThe) {
+            throw new ApiError(
+                403,
+                'Thẻ độc giả tự do chưa được kích hoạt gói. Vui lòng vào mục Thẻ & Điểm uy tín để chọn gói và hoàn tất thanh toán trước khi mượn sách.',
+            );
+        }
+
         // 3. Kiểm tra có sách quá hạn chưa trả không
         const coSachQuaHan = await TheoDoiMuonSach.exists({
             maDocGia: docGiaId,
@@ -170,7 +178,6 @@ class MuonTraService {
                 ngayHenTra: hanGiuSach,
                 msnvMuon: null,
                 trangThai: TRANG_THAI_MUON.YEU_CAU_GIU_SACH,
-                ghiChu: 'Yêu cầu giữ sách trực tuyến (hạn đến quầy nhận: 24h)',
             });
 
             await phieuMuon.save();
@@ -202,7 +209,6 @@ class MuonTraService {
                 {
                     $set: {
                         trangThai: TRANG_THAI_MUON.DA_HUY,
-                        ghiChu: `${item.ghiChu || ''} | Đã tự động hủy do quá 24h không đến quầy đăng ký.`,
                     },
                 },
                 { new: true },
@@ -250,9 +256,6 @@ class MuonTraService {
                     ngayMuon: ngayBatDauMuon,
                     ngayHenTra: ngayHenTra,
                     trangThai: TRANG_THAI_MUON.DANG_MUON,
-                },
-                $push: {
-                    ghiChu: ` | Đã xác nhận mượn trực tiếp tại quầy bởi NV [${nhanVien.msnv}].`,
                 },
             },
             { new: true },
@@ -425,8 +428,7 @@ class MuonTraService {
 
         const thoiDiemBaoMat = new Date(ngayBaoMat);
         phieuMuon.trangThai = TRANG_THAI_MUON.DA_MAT;
-        const noteLydo = ghiChu ? ` (${ghiChu})` : '';
-        phieuMuon.ghiChu = `Báo mất/hỏng sách vào ngày ${thoiDiemBaoMat.toISOString().split('T')[0]}${noteLydo}`;
+        const noteLydo = ghiChu ? ` - Ghi chú: ${ghiChu}` : '';
 
         let soNgayQuaHan = 0;
         if (thoiDiemBaoMat > new Date(phieuMuon.ngayHenTra)) {
@@ -472,7 +474,7 @@ class MuonTraService {
             maTheoDoi: phieuMuon._id,
             msnv: msnvGhiNhanId || null,
             trangThai: TRANG_THAI_THANH_TOAN.CHO_XAC_NHAN,
-            ghiChu: `Bồi thường mất/hỏng sách "${sachObj?.tenSach || 'Sách'}" (Đơn giá: ${giaSach}đ)`,
+            ghiChu: `Bồi thường mất/hỏng sách "${sachObj?.tenSach || 'Sách'}" (Đơn giá: ${giaSach}đ)${noteLydo}`,
         });
 
         if (docGia && docGia.email) {
@@ -560,7 +562,6 @@ class MuonTraService {
         }
 
         if (data.trangThai) phieuMuon.trangThai = data.trangThai;
-        if (data.ghiChu !== undefined) phieuMuon.ghiChu = data.ghiChu;
         if (data.ngayHenTra) phieuMuon.ngayHenTra = new Date(data.ngayHenTra);
 
         await phieuMuon.save();

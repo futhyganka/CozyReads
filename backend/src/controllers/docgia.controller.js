@@ -1,10 +1,36 @@
 const DocGiaService = require('../services/docgia.service');
 const OtpService = require('../services/otp.service');
+const ApiError = require('../api-error');
+
+function damBaoQuyenTruyCapDocGia(req, targetIdOrMa) {
+    const callerRole = req.user?.role || req.user?.maVaiTro;
+    // Nhân viên và Admin có quyền quản lý hồ sơ độc giả
+    if (callerRole === 'nhanVien' || callerRole === 'quanTriVien') {
+        return;
+    }
+    // Độc giả chỉ được thao tác trên đúng hồ sơ của chính mình
+    const callerId = req.user?._id?.toString();
+    const callerMa = req.user?.maDocGia?.toUpperCase();
+    const target = String(targetIdOrMa || '').trim();
+
+    if (
+        callerRole === 'docGia' &&
+        ((callerId && callerId === target) ||
+            (callerMa && callerMa === target.toUpperCase()))
+    ) {
+        return;
+    }
+    throw new ApiError(
+        403,
+        'Bạn chỉ được phép xem hoặc cập nhật hồ sơ độc giả của chính mình.',
+    );
+}
 
 class DocGiaController {
     // [POST] /api/docgias/:id/gui-otp-doi-email
     static async guiOtpDoiEmail(req, res, next) {
         try {
+            damBaoQuyenTruyCapDocGia(req, req.params.id);
             const { emailMoi } = req.body;
             const ketQua = await OtpService.guiOtpDoiEmail(emailMoi, req.params.id);
             res.json({
@@ -35,6 +61,7 @@ class DocGiaController {
     // [GET] /api/docgias/:id hoặc /api/doc-gia/:id
     static async getChiTietDocGia(req, res, next) {
         try {
+            damBaoQuyenTruyCapDocGia(req, req.params.id);
             const docGia = await DocGiaService.getChiTietDocGia(req.params.id);
             res.json({ success: true, data: docGia });
         } catch (error) {
@@ -59,6 +86,7 @@ class DocGiaController {
     // [PUT] /api/docgias/:id
     static async capNhatDocGia(req, res, next) {
         try {
+            damBaoQuyenTruyCapDocGia(req, req.params.id);
             const docGia = await DocGiaService.capNhatDocGia(
                 req.params.id,
                 req.body,
@@ -86,6 +114,7 @@ class DocGiaController {
     // [POST] /api/docgias/:id/doi-mat-khau
     static async doiMatKhau(req, res, next) {
         try {
+            damBaoQuyenTruyCapDocGia(req, req.params.id);
             const ketQua = await DocGiaService.doiMatKhau(
                 req.params.id,
                 req.body,
@@ -132,6 +161,7 @@ class DocGiaController {
     // [POST] /api/docgias/:id/gia-han
     static async taoKhoanThanhToanGiaHan(req, res, next) {
         try {
+            damBaoQuyenTruyCapDocGia(req, req.params.id);
             const { goiGiaHan, phuongThuc } = req.body;
             const thanhToan = await DocGiaService.taoKhoanThanhToanGiaHan({
                 docGiaId: req.params.id,

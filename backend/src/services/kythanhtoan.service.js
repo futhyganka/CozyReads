@@ -221,7 +221,6 @@ class KyThanhToanService {
             );
             if (phieuMuon) {
                 phieuMuon.trangThai = TRANG_THAI_MUON.DA_BOI_THUONG;
-                phieuMuon.ghiChu += ` | Đã hoàn tất bồi thường qua mã GD ${thanhToan.maThanhToan}`;
                 await phieuMuon.save();
             }
         }

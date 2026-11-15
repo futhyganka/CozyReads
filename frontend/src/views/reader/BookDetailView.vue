@@ -24,6 +24,7 @@ const authStore = useAuthStore();
 const loading = ref(true);
 const errorMsg = ref('');
 const book = ref(null);
+const imgError = ref(false);
 const relatedBooks = ref([]);
 
 const checkingEligibility = ref(false);
@@ -34,6 +35,7 @@ const reserving = ref(false);
 async function loadBookDetail() {
     loading.value = true;
     errorMsg.value = '';
+    imgError.value = false;
     eligibilityInfo.value = null;
     eligibilityError.value = '';
     try {
@@ -179,12 +181,17 @@ onMounted(() => {
                     <div class="cr-grid-sidebar" style="grid-template-columns: 300px 1fr">
                         <div class="cr-book-cover-lg">
                             <img
-                                v-if="book.hinhAnh"
+                                v-if="book.hinhAnh && !imgError"
                                 :src="book.hinhAnh"
                                 :alt="book.tenSach"
-                                style="width: 100%; height: 100%; object-fit: cover"
+                                referrerpolicy="no-referrer"
+                                @error="imgError = true"
                             />
-                            <div v-else class="cr-flex-col cr-flex-center cr-gap-sm">
+                            <div
+                                v-else
+                                class="cr-flex-col cr-flex-center cr-gap-sm"
+                                style="min-height: 360px; width: 100%"
+                            >
                                 <i class="pi pi-book" style="font-size: 3.5rem"></i>
                                 <strong>{{ book.maSach }}</strong>
                             </div>

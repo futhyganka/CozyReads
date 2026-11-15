@@ -163,12 +163,12 @@ const routes = [
     // NHÁNH 2: MANAGEMENT PORTAL (Bắt buộc đăng nhập tại /quan-ly/dang-nhap mới vào được)
     // =========================================================================
     {
-        path: '/quan-ly',
+        path: '/quan-ly/dang-nhap',
         component: AuthLayout,
         meta: { staffGuestOnly: true },
         children: [
             {
-                path: 'dang-nhap',
+                path: '',
                 name: 'staff-login',
                 component: () => import('@/views/auth/StaffLoginView.vue'),
                 meta: { title: 'Đăng nhập Nhân viên & Quản trị — CozyReads' },
@@ -256,6 +256,20 @@ const routes = [
                 meta: { title: 'Quản lý Thanh toán — CozyReads' },
             },
             {
+                path: 'lien-he',
+                name: 'mgmt-contacts',
+                component: () =>
+                    import('@/views/management/ManageContactsView.vue'),
+                meta: { title: 'Quản lý liên hệ — CozyReads' },
+            },
+            {
+                path: 'gop-y',
+                name: 'mgmt-feedbacks',
+                component: () =>
+                    import('@/views/management/ManageFeedbacksView.vue'),
+                meta: { title: 'Quản lý góp ý — CozyReads' },
+            },
+            {
                 path: 'ho-so',
                 name: 'mgmt-profile',
                 component: () =>
@@ -332,9 +346,7 @@ const router = createRouter({
 
 router.beforeEach(async (to) => {
     const authStore = useAuthStore();
-    if (!authStore.isInitialized) {
-        await authStore.restoreSession();
-    }
+    await authStore.restoreSession(false, to.path);
 
     if (to.meta?.title) {
         document.title = String(to.meta.title);

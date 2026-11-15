@@ -1,15 +1,32 @@
 const express = require('express');
 const cors = require('cors');
+const config = require('./config');
 const routes = require('./routes');
 const errorHandler = require('./middlewares/error.middleware');
 const { authenticate } = require('./middlewares/auth.middleware');
 
 const app = express();
 
-app.use(cors());
-app.use(express.json());
+const allowedOrigins = (config.app.corsOrigin || '')
+    .split(',')
+    .map((o) => o.trim())
+    .filter(Boolean);
 
-// Xác thực JWT token hoặc header x-user-role
+app.use(
+    cors({
+        origin: (origin, callback) => {
+            // Cho phép request cùng origin / server-to-server hoặc nằm trong danh sách cho phép
+            if (!origin || allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+                return callback(null, true);
+            }
+            return callback(new Error('Truy cập bị từ chối bởi chính sách bảo mật CORS.'));
+        },
+        credentials: true,
+    }),
+);
+app.use(express.json({ limit: '1mb' }));
+
+// Xác thực JWT token
 app.use(authenticate);
 
 // API Routes

@@ -1,6 +1,10 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import { TOKEN_STORAGE_KEY } from '@/services/api';
+import {
+    READER_TOKEN_STORAGE_KEY,
+    STAFF_TOKEN_STORAGE_KEY,
+    isStaffPortalPath,
+} from '@/services/api';
 import authService from '@/services/auth.service';
 import docGiaService from '@/services/docgia.service';
 import nhanVienService from '@/services/nhanvien.service';
@@ -35,21 +39,63 @@ function mapStaffChucVuToRole(chucVu) {
 }
 
 export const useAuthStore = defineStore('auth', () => {
-    const token = ref(localStorage.getItem(TOKEN_STORAGE_KEY) || null);
-    const userProfile = ref(null);
-    const role = ref(ROLES.KHACH);
-    const isInitialized = ref(false);
+    // Tách biệt hoàn toàn phiên Độc giả và phiên Nhân viên/Admin trong localStorage
+    const readerToken = ref(localStorage.getItem(READER_TOKEN_STORAGE_KEY) || null);
+    const readerProfile = ref(null);
+
+    const staffToken = ref(localStorage.getItem(STAFF_TOKEN_STORAGE_KEY) || null);
+    const staffProfile = ref(null);
+    const staffRole = ref(ROLES.KHACH);
+
+    // Reactive route scope ('reader' | 'staff') được cập nhật theo router navigation
+    const activeScope = ref(isStaffPortalPath() ? 'staff' : 'reader');
+
+    const readerInitialized = ref(false);
+    const staffInitialized = ref(false);
+    const isInitialized = computed(() =>
+        activeScope.value === 'staff'
+            ? staffInitialized.value
+            : readerInitialized.value,
+    );
     const loading = ref(false);
 
-    const isAuthenticated = computed(
-        () => Boolean(token.value && role.value && role.value !== ROLES.KHACH),
+    function syncScopeByPath(path = window.location.pathname) {
+        activeScope.value = isStaffPortalPath(path) ? 'staff' : 'reader';
+    }
+
+    const isReader = computed(() =>
+        Boolean(readerToken.value && readerProfile.value),
     );
-    const isReader = computed(() => role.value === ROLES.DOCGIA);
-    const isStaff = computed(
-        () =>
-            role.value === ROLES.NHANVIEN || role.value === ROLES.QUANTRIVIEN,
+    const isStaff = computed(() =>
+        Boolean(
+            staffToken.value &&
+                staffProfile.value &&
+                (staffRole.value === ROLES.NHANVIEN ||
+                    staffRole.value === ROLES.QUANTRIVIEN),
+        ),
     );
-    const isAdmin = computed(() => role.value === ROLES.QUANTRIVIEN);
+    const isAdmin = computed(
+        () => isStaff.value && staffRole.value === ROLES.QUANTRIVIEN,
+    );
+
+    const token = computed(() =>
+        activeScope.value === 'staff' ? staffToken.value : readerToken.value,
+    );
+
+    const userProfile = computed(() =>
+        activeScope.value === 'staff' ? staffProfile.value : readerProfile.value,
+    );
+
+    const role = computed(() => {
+        if (activeScope.value === 'staff') {
+            return isStaff.value ? staffRole.value : ROLES.KHACH;
+        }
+        return isReader.value ? ROLES.DOCGIA : ROLES.KHACH;
+    });
+
+    const isAuthenticated = computed(() =>
+        activeScope.value === 'staff' ? isStaff.value : isReader.value,
+    );
 
     const userId = computed(() => {
         if (userProfile.value?._id) return userProfile.value._id;
@@ -58,26 +104,60 @@ export const useAuthStore = defineStore('auth', () => {
     });
 
     const displayName = computed(() => {
-        if (!userProfile.value) return 'Tài khoản';
-        if (role.value === ROLES.DOCGIA) {
-            return `${userProfile.value.hoLot || ''} ${userProfile.value.ten || ''}`.trim() || userProfile.value.maDocGia;
+        if (activeScope.value === 'staff') {
+            if (!staffProfile.value) return 'Nhân viên';
+            return (
+                staffProfile.value.hoTenNv ||
+                staffProfile.value.msnv ||
+                'Nhân viên'
+            );
         }
-        return userProfile.value.hoTenNv || userProfile.value.msnv || 'Nhân viên';
+        if (!readerProfile.value) return 'Tài khoản';
+        return (
+            `${readerProfile.value.hoLot || ''} ${readerProfile.value.ten || ''}`.trim() ||
+            readerProfile.value.maDocGia ||
+            'Tài khoản'
+        );
     });
 
-    function setToken(newToken) {
-        token.value = newToken;
+    function setReaderToken(newToken) {
+        readerToken.value = newToken;
         if (newToken) {
-            localStorage.setItem(TOKEN_STORAGE_KEY, newToken);
+            localStorage.setItem(READER_TOKEN_STORAGE_KEY, newToken);
         } else {
-            localStorage.removeItem(TOKEN_STORAGE_KEY);
+            localStorage.removeItem(READER_TOKEN_STORAGE_KEY);
         }
     }
 
-    function clearSession() {
-        setToken(null);
-        userProfile.value = null;
-        role.value = ROLES.KHACH;
+    function setStaffToken(newToken) {
+        staffToken.value = newToken;
+        if (newToken) {
+            localStorage.setItem(STAFF_TOKEN_STORAGE_KEY, newToken);
+        } else {
+            localStorage.removeItem(STAFF_TOKEN_STORAGE_KEY);
+        }
+    }
+
+    function clearReaderSession() {
+        setReaderToken(null);
+        readerProfile.value = null;
+    }
+
+    function clearStaffSession() {
+        setStaffToken(null);
+        staffProfile.value = null;
+        staffRole.value = ROLES.KHACH;
+    }
+
+    function clearSession(scope = activeScope.value) {
+        if (scope === 'staff') {
+            clearStaffSession();
+        } else if (scope === 'reader') {
+            clearReaderSession();
+        } else {
+            clearReaderSession();
+            clearStaffSession();
+        }
     }
 
     async function loginReader({ identifier, password }) {
@@ -85,10 +165,10 @@ export const useAuthStore = defineStore('auth', () => {
         try {
             const res = await authService.dangNhapDocGia({ identifier, password });
             const data = res.data;
-            setToken(data.token);
-            userProfile.value = data.docGia;
-            role.value = ROLES.DOCGIA;
-            isInitialized.value = true;
+            setReaderToken(data.token);
+            readerProfile.value = data.docGia;
+            activeScope.value = 'reader';
+            readerInitialized.value = true;
             return data;
         } finally {
             loading.value = false;
@@ -100,78 +180,141 @@ export const useAuthStore = defineStore('auth', () => {
         try {
             const res = await authService.dangNhapNhanVien({ msnv, password });
             const data = res.data;
-            setToken(data.token);
-            userProfile.value = data.nhanVien;
-            role.value = mapStaffChucVuToRole(data.nhanVien?.chucVu) || data.role;
-            isInitialized.value = true;
+            setStaffToken(data.token);
+            staffProfile.value = data.nhanVien;
+            staffRole.value =
+                mapStaffChucVuToRole(data.nhanVien?.chucVu) || data.role;
+            activeScope.value = 'staff';
+            staffInitialized.value = true;
             return data;
         } finally {
             loading.value = false;
         }
     }
 
-    async function restoreSession(force = false) {
-        if (isInitialized.value && !force) return;
-
-        const savedToken = localStorage.getItem(TOKEN_STORAGE_KEY);
-        if (!savedToken) {
-            clearSession();
-            isInitialized.value = true;
+    async function restoreReaderSession() {
+        const saved = localStorage.getItem(READER_TOKEN_STORAGE_KEY);
+        if (!saved) {
+            clearReaderSession();
             return;
         }
-
-        const payload = parseJwtPayload(savedToken);
-        if (!payload || !payload._id || (payload.exp && payload.exp * 1000 < Date.now())) {
-            clearSession();
-            isInitialized.value = true;
+        const payload = parseJwtPayload(saved);
+        const jwtRole = payload?.role || payload?.maVaiTro;
+        if (
+            !payload ||
+            !payload._id ||
+            jwtRole !== ROLES.DOCGIA ||
+            (payload.exp && payload.exp * 1000 < Date.now())
+        ) {
+            clearReaderSession();
             return;
         }
-
-        token.value = savedToken;
-        const jwtRole = payload.role || payload.maVaiTro;
-
+        readerToken.value = saved;
         try {
-            if (jwtRole === ROLES.DOCGIA) {
-                const res = await docGiaService.getChiTietDocGia(payload._id);
-                const dg = res.data;
-                if (!dg || dg.trangThaiTaiKhoan === 'tamKhoa' || dg.trangThaiTaiKhoan === 'daHuy') {
-                    clearSession();
-                } else {
-                    userProfile.value = dg;
-                    role.value = ROLES.DOCGIA;
-                }
-            } else if (jwtRole === ROLES.NHANVIEN || jwtRole === ROLES.QUANTRIVIEN) {
-                const res = await nhanVienService.getChiTietNhanVien(payload._id);
-                const nv = res.data;
-                const verifiedRole = mapStaffChucVuToRole(nv?.chucVu);
-                if (!nv || nv.daNghiViec || verifiedRole === ROLES.KHACH) {
-                    clearSession();
-                } else {
-                    userProfile.value = nv;
-                    role.value = verifiedRole;
-                }
+            const res = await docGiaService.getChiTietDocGia(payload._id);
+            const dg = res.data;
+            if (
+                !dg ||
+                dg.trangThaiTaiKhoan === 'tamKhoa' ||
+                dg.trangThaiTaiKhoan === 'daHuy'
+            ) {
+                clearReaderSession();
             } else {
-                clearSession();
+                readerProfile.value = dg;
             }
         } catch {
-            clearSession();
-        } finally {
-            isInitialized.value = true;
+            clearReaderSession();
+        }
+    }
+
+    async function restoreStaffSession() {
+        const saved = localStorage.getItem(STAFF_TOKEN_STORAGE_KEY);
+        if (!saved) {
+            clearStaffSession();
+            return;
+        }
+        const payload = parseJwtPayload(saved);
+        const jwtRole = payload?.role || payload?.maVaiTro;
+        if (
+            !payload ||
+            !payload._id ||
+            (jwtRole !== ROLES.NHANVIEN && jwtRole !== ROLES.QUANTRIVIEN) ||
+            (payload.exp && payload.exp * 1000 < Date.now())
+        ) {
+            clearStaffSession();
+            return;
+        }
+        staffToken.value = saved;
+        try {
+            const res = await nhanVienService.getChiTietNhanVien(payload._id);
+            const nv = res.data;
+            const verifiedRole = mapStaffChucVuToRole(nv?.chucVu);
+            if (!nv || nv.daNghiViec || verifiedRole === ROLES.KHACH) {
+                clearStaffSession();
+            } else {
+                staffProfile.value = nv;
+                staffRole.value = verifiedRole;
+            }
+        } catch {
+            clearStaffSession();
+        }
+    }
+
+    async function restoreSession(force = false, targetPath = window.location.pathname) {
+        syncScopeByPath(targetPath);
+
+        // Migrate token cũ (nếu có từ phiên bản trước) sang đúng kho lưu trữ
+        const legacyToken = localStorage.getItem('cr_auth_token');
+        if (legacyToken) {
+            const legacyPayload = parseJwtPayload(legacyToken);
+            const legacyRole = legacyPayload?.role || legacyPayload?.maVaiTro;
+            if (legacyRole === ROLES.DOCGIA && !localStorage.getItem(READER_TOKEN_STORAGE_KEY)) {
+                localStorage.setItem(READER_TOKEN_STORAGE_KEY, legacyToken);
+            } else if (
+                (legacyRole === ROLES.NHANVIEN || legacyRole === ROLES.QUANTRIVIEN) &&
+                !localStorage.getItem(STAFF_TOKEN_STORAGE_KEY)
+            ) {
+                localStorage.setItem(STAFF_TOKEN_STORAGE_KEY, legacyToken);
+            }
+            localStorage.removeItem('cr_auth_token');
+        }
+
+        if (activeScope.value === 'staff') {
+            if (!staffInitialized.value || force) {
+                await restoreStaffSession();
+                staffInitialized.value = true;
+            }
+        } else {
+            if (!readerInitialized.value || force) {
+                await restoreReaderSession();
+                readerInitialized.value = true;
+            }
         }
     }
 
     async function refreshProfile() {
-        await restoreSession(true);
+        syncScopeByPath();
+        if (activeScope.value === 'staff') {
+            await restoreStaffSession();
+        } else {
+            await restoreReaderSession();
+        }
     }
 
-    function logout() {
-        clearSession();
+    function logout(scope = activeScope.value) {
+        clearSession(scope);
     }
 
     return {
         token,
         userProfile,
         role,
+        readerToken,
+        readerProfile,
+        staffToken,
+        staffProfile,
+        staffRole,
+        activeScope,
         isInitialized,
         loading,
         isAuthenticated,
@@ -180,11 +323,14 @@ export const useAuthStore = defineStore('auth', () => {
         isAdmin,
         userId,
         displayName,
+        syncScopeByPath,
         loginReader,
         loginStaff,
         restoreSession,
         refreshProfile,
         logout,
         clearSession,
+        clearReaderSession,
+        clearStaffSession,
     };
 });

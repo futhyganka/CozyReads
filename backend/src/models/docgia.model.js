@@ -78,8 +78,8 @@ const docGiaSchema = new Schema(
         },
         chuKyThanhToan: {
             type: String,
-            enum: Object.keys(GOI_GIA_HAN),
-            default: '1_thang',
+            enum: [...Object.keys(GOI_GIA_HAN), null],
+            default: null,
         },
         trangThaiGiaHan: {
             type: String,
@@ -89,10 +89,11 @@ const docGiaSchema = new Schema(
         },
         ngayBatDauKyThanhToan: {
             type: Date,
-            default: Date.now,
+            default: null,
         },
         ngayHetHanThe: {
             type: Date,
+            default: null,
             index: true,
         },
         trangThaiTaiKhoan: {

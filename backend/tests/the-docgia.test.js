@@ -36,7 +36,7 @@ async function testTheDocGia() {
         await AuthService.dangKyDocGia({
             registrationToken: tokenNoSdt,
             email: 'nosdt@test.com',
-            password: '123',
+            password: 'Password@123',
             hoLot: 'Lê',
             ten: 'B',
             dienThoai: '',
@@ -53,7 +53,7 @@ async function testTheDocGia() {
         await AuthService.dangKyDocGia({
             registrationToken: tokenNoSdt,
             email: 'nosdt@test.com',
-            password: '123',
+            password: 'Password@123',
             hoLot: 'Lê',
             ten: 'B',
             dienThoai: '0123456789', // Đầu 01 không hợp lệ
@@ -64,20 +64,22 @@ async function testTheDocGia() {
     }
     assert.strictEqual(biLoiSdtSaiFormat, true);
 
-    // Case 3: Tạo yêu cầu gia hạn thẻ
-    console.log('Case 3: Tạo khoản thanh toán gia hạn thẻ độc giả tự do');
+    // Case 3: Tạo yêu cầu gia hạn thẻ cho độc giả tự do vừa đăng ký online (chưa chọn gói lúc đăng ký)
+    console.log('Case 3: Độc giả tự do đăng ký online có ngayHetHanThe = null, chuKyThanhToan = null & tạo khoản thanh toán gói thẻ');
     const emailDgTuDo = 'dg_tudo@test.com';
     const tokenDgTuDo = await taoRegistrationTokenTest(emailDgTuDo);
     await AuthService.dangKyDocGia({
         registrationToken: tokenDgTuDo,
         email: emailDgTuDo,
-        password: 'password123',
+        password: 'Password@123',
         hoLot: 'Phạm',
         ten: 'Hải',
         dienThoai: '0933333333',
         loaiDocGia: LOAI_DOC_GIA.DOCGIA_TUDO,
     });
     const docGia = await DocGia.findOne({ email: emailDgTuDo });
+    assert.strictEqual(docGia.ngayHetHanThe, null);
+    assert.strictEqual(docGia.chuKyThanhToan, null);
 
     const yeuCauGiaHan = await DocGiaService.taoKhoanThanhToanGiaHan({
         docGiaId: docGia._id,
@@ -110,7 +112,7 @@ async function testTheDocGia() {
     await AuthService.dangKyDocGia({
         registrationToken: tokenSv,
         email: emailSv,
-        password: 'password123',
+        password: 'Password@123',
         hoLot: 'Vũ',
         ten: 'Tuấn',
         dienThoai: '0944444444',
@@ -137,7 +139,7 @@ async function testTheDocGia() {
     await AuthService.dangKyDocGia({
         registrationToken: tokenGv,
         email: emailGv,
-        password: 'password123',
+        password: 'Password@123',
         hoLot: 'Trần',
         ten: 'Hùng',
         dienThoai: '0955555555',
@@ -182,7 +184,7 @@ async function testTheDocGia() {
         ten: 'Linh',
         dienThoai: '0911223344',
         email: emailLinh,
-        password: 'password123',
+        password: 'Password@123',
         loaiDocGia: LOAI_DOC_GIA.SINHVIEN,
     });
     assert.strictEqual(docGiaTaiQuayCoTk.email, 'linhdang@test.com');

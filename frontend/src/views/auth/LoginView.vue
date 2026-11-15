@@ -22,11 +22,33 @@ const readerForm = reactive({
     password: '',
 });
 
+const errors = reactive({
+    identifier: '',
+    password: '',
+});
+
+function validateField(field) {
+    if (field === 'identifier') {
+        const val = readerForm.identifier.trim();
+        errors.identifier = !val
+            ? 'Vui lòng nhập Email hoặc Mã độc giả.'
+            : '';
+        return !errors.identifier;
+    }
+    if (field === 'password') {
+        errors.password = !readerForm.password
+            ? 'Vui lòng nhập mật khẩu.'
+            : '';
+        return !errors.password;
+    }
+    return true;
+}
+
 async function handleReaderLogin() {
     errorMsg.value = '';
-    if (!readerForm.identifier.trim() || !readerForm.password) {
-        errorMsg.value =
-            'Vui lòng nhập đầy đủ Email (hoặc Mã độc giả) và mật khẩu.';
+    const v1 = validateField('identifier');
+    const v2 = validateField('password');
+    if (!v1 || !v2) {
         return;
     }
 
@@ -74,23 +96,31 @@ async function handleReaderLogin() {
 
             <form
                 class="cr-flex-col cr-gap-md"
+                novalidate
                 @submit.prevent="handleReaderLogin"
             >
                 <div class="cr-field">
                     <label class="cr-label" for="reader-id">
-                        Email hoặc Mã độc giả
+                        Email hoặc Mã độc giả *
                     </label>
                     <InputText
                         id="reader-id"
                         v-model="readerForm.identifier"
                         placeholder="VD: docgia.an@gmail.com hoặc DGA0000000"
+                        :invalid="!!errors.identifier"
+                        :class="{ 'cr-input-invalid': !!errors.identifier }"
                         fluid
+                        @update:modelValue="validateField('identifier')"
+                        @blur="validateField('identifier')"
                     />
+                    <small v-if="errors.identifier" class="cr-error">
+                        {{ errors.identifier }}
+                    </small>
                 </div>
 
                 <div class="cr-field">
                     <label class="cr-label" for="reader-pass">
-                        Mật khẩu
+                        Mật khẩu *
                     </label>
                     <Password
                         inputId="reader-pass"
@@ -98,8 +128,15 @@ async function handleReaderLogin() {
                         :feedback="false"
                         toggleMask
                         placeholder="Nhập mật khẩu của bạn"
+                        :invalid="!!errors.password"
+                        :class="{ 'cr-input-invalid': !!errors.password }"
                         fluid
+                        @update:modelValue="validateField('password')"
+                        @blur="validateField('password')"
                     />
+                    <small v-if="errors.password" class="cr-error">
+                        {{ errors.password }}
+                    </small>
                 </div>
 
                 <div class="cr-flex-between">

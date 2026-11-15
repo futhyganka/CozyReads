@@ -329,7 +329,12 @@ onMounted(() => {
                 </div>
                 <div class="cr-field">
                     <label class="cr-label">Số điện thoại *</label>
-                    <InputText v-model="form.soDienThoai" maxlength="10" fluid />
+                    <InputText
+                        v-model="form.soDienThoai"
+                        maxlength="10"
+                        placeholder="10 chữ số (bắt đầu 03, 05, 07, 08, 09)"
+                        fluid
+                    />
                 </div>
                 <div class="cr-field">
                     <label class="cr-label">Chức vụ & Phân quyền *</label>

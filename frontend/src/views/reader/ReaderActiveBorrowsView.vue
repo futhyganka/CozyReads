@@ -94,7 +94,6 @@ onMounted(() => {
                         {{ data.tienPhat > 0 ? formatCurrency(data.tienPhat) : '—' }}
                     </template>
                 </Column>
-                <Column field="ghiChu" header="Ghi chú" />
             </DataTable>
         </template>
     </Card>

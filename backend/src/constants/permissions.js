@@ -13,6 +13,10 @@
  * payments:read        Xem tất cả khoản thanh toán         ❌      ❌      ✅          ✅
  * payments:manage      Xác nhận và xử lý thanh toán        ❌      ❌      ✅          ✅
  * readers:manage       Quản lý độc giả (tại quầy, khóa...) ❌      ❌      ✅          ✅
+ * feedbacks:create     Gửi góp ý (ẩn danh hoặc định danh)  ✅      ✅      ❌          ❌
+ * contacts:create      Gửi yêu cầu liên hệ trực tuyến      ❌      ✅      ❌          ❌
+ * feedbacks:read-own   Xem lịch sử liên hệ/góp ý của mình  ❌      ✅      ❌          ❌
+ * feedbacks:manage     Quản lý & xử lý liên hệ, góp ý      ❌      ❌      ✅          ✅
  * users:manage         Quản lý nhân viên / người dùng      ❌      ❌      ❌          ✅
  * admin:manage         Toàn quyền admin                    ❌      ❌      ❌          ✅
  */
@@ -32,6 +36,10 @@ const PERMISSIONS = {
     PAYMENTS_MANAGE: 'payments:manage',
 
     READERS_MANAGE: 'readers:manage',
+    FEEDBACKS_CREATE: 'feedbacks:create',
+    CONTACTS_CREATE: 'contacts:create',
+    FEEDBACKS_READ_OWN: 'feedbacks:read-own',
+    FEEDBACKS_MANAGE: 'feedbacks:manage',
     USERS_MANAGE: 'users:manage',
     ADMIN_MANAGE: 'admin:manage',
 };
@@ -44,7 +52,11 @@ const ROLES = {
 };
 
 const ROLE_PERMISSIONS = {
-    [ROLES.KHACH]: [PERMISSIONS.BOOKS_READ, PERMISSIONS.BOOKS_SEARCH],
+    [ROLES.KHACH]: [
+        PERMISSIONS.BOOKS_READ,
+        PERMISSIONS.BOOKS_SEARCH,
+        PERMISSIONS.FEEDBACKS_CREATE,
+    ],
     [ROLES.DOCGIA]: [
         PERMISSIONS.BOOKS_READ,
         PERMISSIONS.BOOKS_SEARCH,
@@ -52,6 +64,9 @@ const ROLE_PERMISSIONS = {
         PERMISSIONS.BORROWS_READ_OWN,
         PERMISSIONS.PAYMENTS_CREATE,
         PERMISSIONS.PAYMENTS_READ_OWN,
+        PERMISSIONS.FEEDBACKS_CREATE,
+        PERMISSIONS.CONTACTS_CREATE,
+        PERMISSIONS.FEEDBACKS_READ_OWN,
     ],
     [ROLES.NHANVIEN]: [
         PERMISSIONS.BOOKS_READ,
@@ -65,6 +80,7 @@ const ROLE_PERMISSIONS = {
         PERMISSIONS.PAYMENTS_READ,
         PERMISSIONS.PAYMENTS_MANAGE,
         PERMISSIONS.READERS_MANAGE,
+        PERMISSIONS.FEEDBACKS_MANAGE,
     ],
     [ROLES.QUANTRIVIEN]: [
         PERMISSIONS.BOOKS_READ,
@@ -78,6 +94,7 @@ const ROLE_PERMISSIONS = {
         PERMISSIONS.PAYMENTS_READ,
         PERMISSIONS.PAYMENTS_MANAGE,
         PERMISSIONS.READERS_MANAGE,
+        PERMISSIONS.FEEDBACKS_MANAGE,
         PERMISSIONS.USERS_MANAGE,
         PERMISSIONS.ADMIN_MANAGE,
     ],

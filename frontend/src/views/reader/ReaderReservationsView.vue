@@ -100,7 +100,6 @@ onMounted(() => {
                         <StatusTag type="muon" :value="data.trangThai" />
                     </template>
                 </Column>
-                <Column field="ghiChu" header="Ghi chú" />
             </DataTable>
         </template>
     </Card>

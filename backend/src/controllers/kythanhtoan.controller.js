@@ -26,6 +26,17 @@ class KyThanhToanController {
             const tt = await KyThanhToanService.getChiTietThanhToan(
                 req.params.id,
             );
+            const callerRole = req.user?.role || req.user?.maVaiTro;
+            const callerId = req.user?._id?.toString();
+            const ownerId = (tt.maDocGia?._id || tt.maDocGia)?.toString();
+
+            if (callerRole === 'docGia' && callerId && ownerId !== callerId) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Bạn không có quyền xem giao dịch thanh toán của độc giả khác.',
+                });
+            }
+
             res.json({ success: true, data: tt });
         } catch (error) {
             next(error);
@@ -36,8 +47,10 @@ class KyThanhToanController {
     static async taoThanhToan(req, res, next) {
         try {
             let data = { ...req.body };
-            if (req.user?.role === 'docGia' && !data.maDocGia && !data.docGia) {
+            const callerRole = req.user?.role || req.user?.maVaiTro;
+            if (callerRole === 'docGia') {
                 data.maDocGia = req.user._id;
+                delete data.docGia;
             }
             if (req.user?.msnv && !data.msnv) {
                 data.msnv = req.user._id;
@@ -128,6 +141,16 @@ class KyThanhToanController {
     static async getThanhToanCuaDocGia(req, res, next) {
         try {
             const docGiaId = req.params.docGiaId;
+            const callerRole = req.user?.role || req.user?.maVaiTro;
+            const callerId = req.user?._id?.toString();
+
+            if (callerRole === 'docGia' && callerId && callerId !== docGiaId) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Bạn không có quyền xem lịch sử thanh toán của độc giả khác.',
+                });
+            }
+
             const ketQua = await KyThanhToanService.getDanhSachThanhToan({
                 docGiaId,
                 limit: 100,

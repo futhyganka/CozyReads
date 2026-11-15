@@ -49,14 +49,7 @@ async function authenticate(req, res, next) {
             return next();
         }
 
-        // Hỗ trợ kiểm thử hoặc header x-user-role
-        const roleHeader = req.headers['x-user-role'];
-        if (roleHeader) {
-            req.user = { maVaiTro: roleHeader, role: roleHeader };
-            return next();
-        }
-
-        // Mặc định là khách vãng lai
+        // Mặc định là khách vãng lai (đã loại bỏ header x-user-role để chống giả mạo quyền)
         req.user = { maVaiTro: ROLES.KHACH, role: ROLES.KHACH };
         next();
     } catch (err) {

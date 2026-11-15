@@ -46,7 +46,7 @@ async function testThanhToan() {
 
     const { nhanVien } = await AuthService.dangKyNhanVien({
         email: 'nv_tt@test.com',
-        password: 'password123',
+        password: 'Password@123',
         hoTen: 'Nhân Viên Thu Ngân',
         dienThoai: '0911222333',
     });
@@ -55,12 +55,15 @@ async function testThanhToan() {
     await AuthService.dangKyDocGia({
         registrationToken: tokenDgTt,
         email: emailDgTt,
-        password: 'password123',
+        password: 'Password@123',
         hoLot: 'Đỗ',
         ten: 'Nam',
         dienThoai: '0966666666',
     });
     const docGia = await DocGia.findOne({ email: emailDgTt });
+    assert.strictEqual(docGia.ngayHetHanThe, null);
+    docGia.ngayHetHanThe = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    await docGia.save();
 
     // Case 1: Báo mất sách -> Sinh khoản thanh toán bồi thường
     console.log(

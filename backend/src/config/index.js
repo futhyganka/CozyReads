@@ -14,6 +14,7 @@ if (typeof process.loadEnvFile === 'function') {
 const config = {
     app: {
         port: process.env.PORT || port,
+        corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:5173,http://localhost:4173,http://127.0.0.1:5173',
     },
     db: {
         url: process.env.MONGODB_URL || mongoURI,

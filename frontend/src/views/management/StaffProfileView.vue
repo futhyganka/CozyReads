@@ -158,6 +158,7 @@ onMounted(async () => {
                         <InputText
                             v-model="profileForm.soDienThoai"
                             maxlength="10"
+                            placeholder="10 chữ số (bắt đầu 03, 05, 07, 08, 09)"
                             fluid
                         />
                     </div>

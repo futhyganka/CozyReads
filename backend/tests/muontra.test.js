@@ -63,7 +63,7 @@ async function testMuonTra() {
     // 3. Tạo nhân viên và độc giả (bắt buộc dienThoai)
     const { nhanVien } = await AuthService.dangKyNhanVien({
         email: 'nv1@cozyreads.com',
-        password: 'password123',
+        password: 'Password@123',
         hoTen: 'Nguyễn Văn Nhân Viên',
         dienThoai: '0901234567',
     });
@@ -73,10 +73,11 @@ async function testMuonTra() {
     await AuthService.dangKyDocGia({
         registrationToken: regTokenDg1,
         email: emailDg1,
-        password: 'password123',
+        password: 'Password@123',
         hoLot: 'Trần',
         ten: 'Văn An',
         dienThoai: '0912345678',
+        loaiDocGia: 'sinhVien',
     });
     const docGia = await DocGia.findOne({ email: emailDg1 });
 

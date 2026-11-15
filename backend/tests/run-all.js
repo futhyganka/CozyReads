@@ -8,6 +8,7 @@ const testCRUDToanBo = require('./crud-toan-bo.test');
 const testRaSoatNghiepVu = require('./ra-soat-nghiep-vu.test');
 const testKiemTraCuoiCung = require('./kiem-tra-cuoi-cung.test');
 const testXacThucEmail = require('./xac-thuc-email.test');
+const testLienHeGopY = require('./lienhe-gopy.test');
 
 async function runAllTests() {
     console.log('====================================================');
@@ -25,11 +26,12 @@ async function runAllTests() {
         await testRaSoatNghiepVu();
         await testKiemTraCuoiCung();
         await testXacThucEmail();
+        await testLienHeGopY();
 
         const duration = ((Date.now() - start) / 1000).toFixed(2);
         console.log('\n====================================================');
         console.log(
-            `🎉 TẤT CẢ 9 BỘ TEST (TOÀN BỘ NGHIỆP VỤ & XÁC THỰC EMAIL) ĐÃ VƯỢT QUA TEST THÀNH CÔNG (${duration}s)!`,
+            `🎉 TẤT CẢ 10 BỘ TEST (TOÀN BỘ NGHIỆP VỤ, EMAIL & LIÊN HỆ/GÓP Ý) ĐÃ VƯỢT QUA TEST THÀNH CÔNG (${duration}s)!`,
         );
         console.log('====================================================');
     } catch (error) {

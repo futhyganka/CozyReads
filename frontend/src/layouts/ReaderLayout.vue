@@ -48,7 +48,7 @@ const menuItems = computed(() => [
 ]);
 
 function handleLogout() {
-    authStore.logout();
+    authStore.logout('reader');
     toast.add({
         severity: 'info',
         summary: 'Đã đăng xuất',

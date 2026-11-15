@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, reactive } from 'vue';
 import { useRouter } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
 import Card from 'primevue/card';
@@ -13,7 +13,7 @@ import Password from 'primevue/password';
 import Button from 'primevue/button';
 import Message from 'primevue/message';
 import authService from '@/services/auth.service';
-import { REGEX } from '@/utils/constants';
+import { REGEX, validatePasswordStrength } from '@/utils/constants';
 
 const router = useRouter();
 const toast = useToast();
@@ -28,13 +28,71 @@ const verificationToken = ref('');
 const matKhauMoi = ref('');
 const xacNhanMatKhau = ref('');
 
+const errors = reactive({
+    email: '',
+    otp: '',
+    matKhauMoi: '',
+    xacNhanMatKhau: '',
+});
+
+function validateField(field) {
+    switch (field) {
+        case 'email': {
+            const val = email.value.trim().toLowerCase();
+            if (!val) {
+                errors.email = 'Vui lòng nhập địa chỉ email.';
+            } else if (!REGEX.EMAIL.test(val)) {
+                errors.email = 'Địa chỉ email không hợp lệ.';
+            } else {
+                errors.email = '';
+            }
+            return !errors.email;
+        }
+        case 'otp': {
+            const val = otp.value.trim();
+            if (!val) {
+                errors.otp = 'Vui lòng nhập mã OTP.';
+            } else if (!/^\d{6}$/.test(val)) {
+                errors.otp = 'Mã OTP phải gồm đúng 6 chữ số.';
+            } else {
+                errors.otp = '';
+            }
+            return !errors.otp;
+        }
+        case 'matKhauMoi': {
+            errors.matKhauMoi = validatePasswordStrength(
+                matKhauMoi.value,
+                'Mật khẩu mới',
+            );
+            if (xacNhanMatKhau.value) {
+                errors.xacNhanMatKhau =
+                    xacNhanMatKhau.value !== matKhauMoi.value
+                        ? 'Mật khẩu xác nhận không khớp.'
+                        : '';
+            }
+            return !errors.matKhauMoi;
+        }
+        case 'xacNhanMatKhau': {
+            if (!xacNhanMatKhau.value) {
+                errors.xacNhanMatKhau = 'Vui lòng nhập lại mật khẩu mới.';
+            } else if (xacNhanMatKhau.value !== matKhauMoi.value) {
+                errors.xacNhanMatKhau = 'Mật khẩu xác nhận không khớp.';
+            } else {
+                errors.xacNhanMatKhau = '';
+            }
+            return !errors.xacNhanMatKhau;
+        }
+        default:
+            return true;
+    }
+}
+
 async function handleSendResetOtp() {
     errorMsg.value = '';
-    const normalized = email.value.trim().toLowerCase();
-    if (!REGEX.EMAIL.test(normalized)) {
-        errorMsg.value = 'Địa chỉ email không hợp lệ.';
+    if (!validateField('email')) {
         return;
     }
+    const normalized = email.value.trim().toLowerCase();
 
     loading.value = true;
     try {
@@ -48,6 +106,7 @@ async function handleSendResetOtp() {
         });
         activeStep.value = '2';
     } catch (err) {
+        errors.email = err.message;
         errorMsg.value = err.message;
     } finally {
         loading.value = false;
@@ -56,8 +115,7 @@ async function handleSendResetOtp() {
 
 async function handleVerifyOtp() {
     errorMsg.value = '';
-    if (!/^\d{6}$/.test(otp.value.trim())) {
-        errorMsg.value = 'Vui lòng nhập mã OTP 6 chữ số.';
+    if (!validateField('otp')) {
         return;
     }
 
@@ -66,8 +124,10 @@ async function handleVerifyOtp() {
         const res = await authService.xacThucOtp(email.value, otp.value.trim());
         verificationToken.value = res.verificationToken || res.registrationToken;
         otp.value = '';
+        errors.otp = '';
         activeStep.value = '3';
     } catch (err) {
+        errors.otp = err.message;
         errorMsg.value = err.message;
     } finally {
         loading.value = false;
@@ -76,12 +136,9 @@ async function handleVerifyOtp() {
 
 async function handleResetPassword() {
     errorMsg.value = '';
-    if (!matKhauMoi.value || matKhauMoi.value.length < 6) {
-        errorMsg.value = 'Mật khẩu mới phải có ít nhất 6 ký tự.';
-        return;
-    }
-    if (matKhauMoi.value !== xacNhanMatKhau.value) {
-        errorMsg.value = 'Mật khẩu xác nhận không khớp.';
+    const v1 = validateField('matKhauMoi');
+    const v2 = validateField('xacNhanMatKhau');
+    if (!v1 || !v2) {
         return;
     }
 
@@ -140,16 +197,24 @@ async function handleResetPassword() {
                     <StepPanel value="1">
                         <form
                             class="cr-flex-col cr-gap-md"
+                            novalidate
                             @submit.prevent="handleSendResetOtp"
                         >
                             <div class="cr-field">
-                                <label class="cr-label">Email tài khoản độc giả</label>
+                                <label class="cr-label">Email tài khoản độc giả *</label>
                                 <InputText
                                     v-model="email"
                                     type="email"
                                     placeholder="nhapemail@example.com"
+                                    :invalid="!!errors.email"
+                                    :class="{ 'cr-input-invalid': !!errors.email }"
                                     fluid
+                                    @update:modelValue="validateField('email')"
+                                    @blur="validateField('email')"
                                 />
+                                <small v-if="errors.email" class="cr-error">
+                                    {{ errors.email }}
+                                </small>
                             </div>
                             <Button
                                 type="submit"
@@ -164,34 +229,44 @@ async function handleResetPassword() {
                     <StepPanel value="2">
                         <form
                             class="cr-flex-col cr-gap-md"
+                            novalidate
                             @submit.prevent="handleVerifyOtp"
                         >
                             <Message severity="info" :closable="false">
                                 Đã gửi mã OTP tới <strong>{{ email }}</strong>.
                             </Message>
                             <div class="cr-field">
-                                <label class="cr-label">Mã OTP (6 chữ số)</label>
+                                <label class="cr-label">Mã OTP (6 chữ số) *</label>
                                 <InputText
                                     v-model="otp"
                                     maxlength="6"
                                     placeholder="Nhập 6 chữ số"
+                                    :invalid="!!errors.otp"
+                                    :class="{ 'cr-input-invalid': !!errors.otp }"
                                     fluid
+                                    @update:modelValue="validateField('otp')"
+                                    @blur="validateField('otp')"
                                 />
+                                <small v-if="errors.otp" class="cr-error">
+                                    {{ errors.otp }}
+                                </small>
                             </div>
-                            <div class="cr-flex cr-gap-sm">
-                                <Button
-                                    type="button"
-                                    label="Quay lại"
-                                    severity="secondary"
-                                    outlined
-                                    @click="activeStep = '1'"
-                                />
+                            <div class="cr-flex-col cr-gap-sm">
                                 <Button
                                     type="submit"
                                     label="Xác nhận OTP"
                                     icon="pi pi-check"
                                     :loading="loading"
                                     fluid
+                                />
+                                <Button
+                                    type="button"
+                                    label="Quay lại đổi Email"
+                                    icon="pi pi-arrow-left"
+                                    severity="secondary"
+                                    outlined
+                                    fluid
+                                    @click="activeStep = '1'"
                                 />
                             </div>
                         </form>
@@ -200,6 +275,7 @@ async function handleResetPassword() {
                     <StepPanel value="3">
                         <form
                             class="cr-flex-col cr-gap-md"
+                            novalidate
                             @submit.prevent="handleResetPassword"
                         >
                             <div class="cr-field">
@@ -208,9 +284,16 @@ async function handleResetPassword() {
                                     v-model="matKhauMoi"
                                     toggleMask
                                     :feedback="false"
-                                    placeholder="Ít nhất 6 ký tự"
+                                    placeholder="Từ 8 ký tự, gồm hoa, thường, số, ký tự đặc biệt"
+                                    :invalid="!!errors.matKhauMoi"
+                                    :class="{ 'cr-input-invalid': !!errors.matKhauMoi }"
                                     fluid
+                                    @update:modelValue="validateField('matKhauMoi')"
+                                    @blur="validateField('matKhauMoi')"
                                 />
+                                <small v-if="errors.matKhauMoi" class="cr-error">
+                                    {{ errors.matKhauMoi }}
+                                </small>
                             </div>
                             <div class="cr-field">
                                 <label class="cr-label">Nhập lại mật khẩu mới *</label>
@@ -219,8 +302,15 @@ async function handleResetPassword() {
                                     toggleMask
                                     :feedback="false"
                                     placeholder="Xác nhận mật khẩu mới"
+                                    :invalid="!!errors.xacNhanMatKhau"
+                                    :class="{ 'cr-input-invalid': !!errors.xacNhanMatKhau }"
                                     fluid
+                                    @update:modelValue="validateField('xacNhanMatKhau')"
+                                    @blur="validateField('xacNhanMatKhau')"
                                 />
+                                <small v-if="errors.xacNhanMatKhau" class="cr-error">
+                                    {{ errors.xacNhanMatKhau }}
+                                </small>
                             </div>
                             <Button
                                 type="submit"

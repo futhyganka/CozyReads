@@ -51,7 +51,7 @@ async function testDiemTuDong() {
 
     const { nhanVien } = await AuthService.dangKyNhanVien({
         email: 'nv_diem@test.com',
-        password: 'password123',
+        password: 'Password@123',
         hoTen: 'Thủ Thư',
         dienThoai: '0988111222',
     });
@@ -60,10 +60,11 @@ async function testDiemTuDong() {
     await AuthService.dangKyDocGia({
         registrationToken: regTokenDgDiem,
         email: emailDgDiem,
-        password: 'password123',
+        password: 'Password@123',
         hoLot: 'Lê',
         ten: 'Bình',
         dienThoai: '0988888888',
+        loaiDocGia: 'sinhVien',
     });
     const docGia = await DocGia.findOne({ email: emailDgDiem });
 
@@ -144,7 +145,7 @@ async function testDiemTuDong() {
     await AuthService.dangKyDocGia({
         registrationToken: regTokenNgoan,
         email: emailNgoan,
-        password: 'password123',
+        password: 'Password@123',
         hoLot: 'Hoàng',
         ten: 'Dương',
         dienThoai: '0977777777',
