@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
 import { useConfirm } from 'primevue/useconfirm';
@@ -27,7 +27,6 @@ const loading = ref(true);
 const errorMsg = ref('');
 const reservingId = ref(null);
 
-const latestBooks = ref([]);
 const categories = ref([]);
 const stats = ref({
     totalBooks: 0,
@@ -36,21 +35,53 @@ const stats = ref({
     totalPublishers: 0,
 });
 
+// State cho Section Gợi ý sách thông minh
+const recommendedBooks = ref([]);
+const recommendationTitle = ref('Sách nổi bật');
+const recommendationSubtitle = ref(
+    'Những cuốn sách được yêu thích tại CozyReads, biết đâu bạn sẽ tìm thấy cuốn sách dành cho mình.',
+);
+const recommendationType = ref('popular');
+const recommendationCase = ref('A');
+const loadingRecommendations = ref(true);
+const recommendationError = ref('');
+
+async function loadRecommendations() {
+    loadingRecommendations.value = true;
+    recommendationError.value = '';
+    // Xóa kết quả trước đó để đảm bảo không rò rỉ dữ liệu giữa các phiên tài khoản
+    recommendedBooks.value = [];
+    try {
+        const res = await sachService.getGoiYSach({ limit: 8 });
+        recommendationTitle.value = res.title || 'Sách nổi bật';
+        recommendationSubtitle.value =
+            res.subtitle ||
+            'Những cuốn sách được yêu thích tại CozyReads, biết đâu bạn sẽ tìm thấy cuốn sách dành cho mình.';
+        recommendationType.value = res.loaiGoiY || 'popular';
+        recommendationCase.value = res.caseType || 'A';
+        recommendedBooks.value = res.data || [];
+    } catch (err) {
+        recommendationError.value =
+            err.message || 'Không thể tải danh sách sách gợi ý.';
+    } finally {
+        loadingRecommendations.value = false;
+    }
+}
+
 async function loadHomeData() {
     loading.value = true;
     errorMsg.value = '';
     try {
-        const [sachRes, dmRes, tgRes, nxbRes] = await Promise.all([
-            sachService.getDanhSachSach({ page: 1, limit: 8 }),
+        const [dmRes, tgRes, nxbRes, sachCountRes] = await Promise.all([
             danhMucService.getDanhSachDanhMuc({ page: 1, limit: 12 }),
             tacGiaService.getDanhSachTacGia({ page: 1, limit: 1 }),
             nhaXuatBanService.getDanhSachNhaXuatBan({ page: 1, limit: 1 }),
+            sachService.getDanhSachSach({ page: 1, limit: 1 }),
         ]);
 
-        latestBooks.value = sachRes.data || [];
         categories.value = dmRes.data || [];
         stats.value = {
-            totalBooks: sachRes.total || 0,
+            totalBooks: sachCountRes.total || 0,
             totalCategories: dmRes.total || 0,
             totalAuthors: tgRes.total || 0,
             totalPublishers: nxbRes.total || 0,
@@ -61,6 +92,14 @@ async function loadHomeData() {
         loading.value = false;
     }
 }
+
+// Tự động tải lại gợi ý sách khi thay đổi trạng thái đăng nhập hoặc chuyển tài khoản
+watch(
+    () => [authStore.readerToken, authStore.userId],
+    () => {
+        loadRecommendations();
+    },
+);
 
 function handleSearch() {
     router.push({
@@ -113,7 +152,7 @@ function handleReserveBook(book) {
                     detail: res.message,
                     life: 4500,
                 });
-                await loadHomeData();
+                await Promise.all([loadHomeData(), loadRecommendations()]);
             } catch (err) {
                 toast.add({
                     severity: 'error',
@@ -130,6 +169,7 @@ function handleReserveBook(book) {
 
 onMounted(() => {
     loadHomeData();
+    loadRecommendations();
 });
 </script>
 
@@ -248,13 +288,33 @@ onMounted(() => {
             </Card>
         </div>
 
-        <!-- Latest Books -->
+        <!-- Smart Recommendations Section -->
         <section class="cr-section">
             <div class="cr-page-header">
                 <div>
-                    <h2 class="cr-page-title">Sách mới cập nhật</h2>
+                    <div class="cr-items-center cr-gap-xs" style="margin-bottom: 0.35rem">
+                        <Tag
+                            v-if="recommendationType === 'knn' || recommendationType === 'hybrid'"
+                            value="Gợi ý dành riêng"
+                            severity="success"
+                            icon="pi pi-sparkles"
+                        />
+                        <Tag
+                            v-else-if="authStore.isReader"
+                            value="Tuyển chọn phù hợp"
+                            severity="secondary"
+                            icon="pi pi-bookmark"
+                        />
+                        <Tag
+                            v-else
+                            value="Được mượn nhiều nhất"
+                            severity="warn"
+                            icon="pi pi-fire"
+                        />
+                    </div>
+                    <h2 class="cr-page-title">{{ recommendationTitle }}</h2>
                     <p class="cr-page-subtitle">
-                        Những đầu sách mới nhất hiện có tại thư viện CozyReads
+                        {{ recommendationSubtitle }}
                     </p>
                 </div>
                 <Button
@@ -267,11 +327,24 @@ onMounted(() => {
                 />
             </div>
 
-            <Message v-if="errorMsg" severity="error" style="margin-bottom: 1rem">
-                {{ errorMsg }}
+            <Message
+                v-if="recommendationError"
+                severity="error"
+                style="margin-bottom: 1rem"
+            >
+                <div class="cr-flex-between cr-items-center" style="width: 100%">
+                    <span>{{ recommendationError }}</span>
+                    <Button
+                        label="Thử lại"
+                        size="small"
+                        severity="secondary"
+                        text
+                        @click="loadRecommendations"
+                    />
+                </div>
             </Message>
 
-            <div v-if="loading" class="cr-grid-books">
+            <div v-if="loadingRecommendations" class="cr-grid-books">
                 <Card v-for="n in 4" :key="n">
                     <template #content>
                         <Skeleton height="220px" style="margin-bottom: 1rem" />
@@ -281,14 +354,17 @@ onMounted(() => {
                 </Card>
             </div>
 
-            <div v-else-if="latestBooks.length === 0" class="cr-empty-state">
+            <div
+                v-else-if="recommendedBooks.length === 0"
+                class="cr-empty-state"
+            >
                 <i class="pi pi-inbox" style="font-size: 2.5rem; margin-bottom: 0.5rem"></i>
-                <p>Hiện chưa có đầu sách nào trong hệ thống.</p>
+                <p>Hiện chưa có sách phù hợp để hiển thị.</p>
             </div>
 
             <div v-else class="cr-grid-books">
                 <BookCard
-                    v-for="book in latestBooks"
+                    v-for="book in recommendedBooks"
                     :key="book._id"
                     :book="book"
                     :reserving="reservingId === book._id"

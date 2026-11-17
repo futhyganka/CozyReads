@@ -26,8 +26,15 @@ const borrows = ref([]);
 const payments = ref([]);
 
 const profile = computed(() => authStore.userProfile || {});
+const isCardActivated = computed(
+    () =>
+        !(
+            profile.value.loaiDocGia === 'docGia_tuDo' &&
+            !profile.value.ngayHetHanThe
+        ),
+);
 const maxBorrowLimit = computed(() =>
-    getHanMucMuonTheoDiem(profile.value.diemDocGia),
+    isCardActivated.value ? getHanMucMuonTheoDiem(profile.value.diemDocGia) : 0,
 );
 
 const activeReservationsCount = computed(
@@ -111,8 +118,17 @@ onMounted(() => {
                     <div class="cr-flex-between">
                         <div>
                             <div class="cr-muted">Điểm uy tín hiện tại</div>
-                            <div style="font-size: 1.6rem; font-weight: 800; color: var(--cr-primary)">
+                            <div
+                                v-if="isCardActivated"
+                                style="font-size: 1.6rem; font-weight: 800; color: var(--cr-primary)"
+                            >
                                 {{ profile.diemDocGia ?? 0 }} / 100
+                            </div>
+                            <div
+                                v-else
+                                style="font-size: 1.2rem; font-weight: 700; color: var(--cr-text-muted); margin: 0.25rem 0"
+                            >
+                                Chưa kích hoạt
                             </div>
                             <div class="cr-muted">
                                 Hạn mức: Tối đa {{ maxBorrowLimit }} cuốn

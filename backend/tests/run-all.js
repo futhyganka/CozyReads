@@ -9,6 +9,7 @@ const testRaSoatNghiepVu = require('./ra-soat-nghiep-vu.test');
 const testKiemTraCuoiCung = require('./kiem-tra-cuoi-cung.test');
 const testXacThucEmail = require('./xac-thuc-email.test');
 const testLienHeGopY = require('./lienhe-gopy.test');
+const testGoiYSach = require('./goiy.test');
 
 async function runAllTests() {
     console.log('====================================================');
@@ -27,11 +28,12 @@ async function runAllTests() {
         await testKiemTraCuoiCung();
         await testXacThucEmail();
         await testLienHeGopY();
+        await testGoiYSach();
 
         const duration = ((Date.now() - start) / 1000).toFixed(2);
         console.log('\n====================================================');
         console.log(
-            `🎉 TẤT CẢ 10 BỘ TEST (TOÀN BỘ NGHIỆP VỤ, EMAIL & LIÊN HỆ/GÓP Ý) ĐÃ VƯỢT QUA TEST THÀNH CÔNG (${duration}s)!`,
+            `🎉 TẤT CẢ 11 BỘ TEST (NGHIỆP VỤ, EMAIL, GÓP Ý & GỢI Ý KNN) ĐÃ VƯỢT QUA TEST THÀNH CÔNG (${duration}s)!`,
         );
         console.log('====================================================');
     } catch (error) {

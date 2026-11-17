@@ -83,7 +83,13 @@ function handleLogout() {
                         <div class="cr-items-center cr-flex-wrap">
                             <template v-if="authStore.isReader">
                                 <Tag
-                                    v-if="authStore.userProfile?.diemDocGia !== undefined"
+                                    v-if="
+                                        authStore.userProfile?.diemDocGia !== undefined &&
+                                        !(
+                                            authStore.userProfile?.loaiDocGia === 'docGia_tuDo' &&
+                                            !authStore.userProfile?.ngayHetHanThe
+                                        )
+                                    "
                                     :value="`${authStore.userProfile.diemDocGia} điểm uy tín`"
                                     severity="success"
                                     icon="pi pi-star-fill"

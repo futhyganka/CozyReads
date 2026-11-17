@@ -132,6 +132,13 @@ export const CozyReadsPreset = definePreset(Aura, {
             },
         },
     },
+    components: {
+        paginator: {
+            root: {
+                background: 'transparent',
+            },
+        },
+    },
 });
 
 export default CozyReadsPreset;

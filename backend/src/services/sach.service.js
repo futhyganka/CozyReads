@@ -1,5 +1,6 @@
 const { Sach, TacGia, DanhMuc, NhaXuatBan, TheoDoiMuonSach } = require('../models');
 const ApiError = require('../api-error');
+const GoiYService = require('./goiy.service');
 
 class SachService {
     static extractObjectId(val) {
@@ -161,6 +162,7 @@ class SachService {
         });
 
         await sach.save();
+        GoiYService.xoaCacheSach();
         return sach.populate(['tacGia', 'danhMuc', 'maNXB']);
     }
 
@@ -277,6 +279,7 @@ class SachService {
 
         Object.assign(sach, data);
         await sach.save();
+        GoiYService.xoaCacheSach();
         return sach.populate(['tacGia', 'danhMuc', 'maNXB']);
     }
 
@@ -304,6 +307,7 @@ class SachService {
             sach.soQuyen = 0;
             sach.moTa = `${sach.moTa} [Ngừng lưu hành]`.trim();
             await sach.save();
+            GoiYService.xoaCacheSach();
             return {
                 type: 'soft_delete',
                 message: 'Sách đã có lịch sử mượn trả nên đã được cập nhật số lượng về 0 và gắn nhãn ngừng lưu hành để bảo toàn dữ liệu.',
@@ -312,6 +316,7 @@ class SachService {
         }
 
         await Sach.findByIdAndDelete(id);
+        GoiYService.xoaCacheSach();
         return {
             type: 'hard_delete',
             message: 'Đã xóa hoàn toàn sách khỏi hệ thống.',

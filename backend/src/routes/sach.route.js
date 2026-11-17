@@ -11,6 +11,11 @@ router.get(
     SachController.getDanhSachSach,
 );
 router.get(
+    '/goi-y',
+    checkPermission(PERMISSIONS.BOOKS_READ),
+    SachController.getGoiYSach,
+);
+router.get(
     '/:id',
     checkPermission(PERMISSIONS.BOOKS_READ),
     SachController.getChiTietSach,

@@ -8,6 +8,7 @@ const {
 const ApiError = require('../api-error');
 const DiemService = require('./diem.service');
 const MailService = require('./mail.service');
+const GoiYService = require('./goiy.service');
 const {
     TRANG_THAI_MUON,
     TRANG_THAI_DOC_GIA,
@@ -181,6 +182,7 @@ class MuonTraService {
             });
 
             await phieuMuon.save();
+            GoiYService.xoaCache();
             return phieuMuon;
         } catch (err) {
             // Nếu lưu phiếu thất bại, hoàn lại tồn kho sách ngay lập tức
@@ -221,6 +223,9 @@ class MuonTraService {
                 });
                 ketQua.push(phieuDaHuy);
             }
+        }
+        if (ketQua.length > 0) {
+            GoiYService.xoaCacheSach();
         }
         return ketQua;
     }
@@ -272,6 +277,7 @@ class MuonTraService {
             );
         }
 
+        GoiYService.xoaCache();
         return phieuMuon;
     }
 
@@ -332,6 +338,7 @@ class MuonTraService {
             });
 
             await phieuMuon.save();
+            GoiYService.xoaCache();
             return phieuMuon;
         } catch (err) {
             await Sach.findByIdAndUpdate(sachId, { $inc: { soQuyen: 1 } });
@@ -388,6 +395,7 @@ class MuonTraService {
         phieuMuon.msnvTra = msnvTraId || null;
         phieuMuon.trangThai = TRANG_THAI_MUON.DA_TRA;
         await phieuMuon.save();
+        GoiYService.xoaCache();
 
         await DiemService.kiemTraVaXuLyVuotHanMucMuon(phieuMuon.maDocGia);
 
@@ -491,6 +499,7 @@ class MuonTraService {
         }
 
         await thanhToan.save();
+        GoiYService.xoaCache();
 
         await DiemService.kiemTraVaXuLyVuotHanMucMuon(phieuMuon.maDocGia);
 
@@ -597,6 +606,7 @@ class MuonTraService {
         }
 
         await TheoDoiMuonSach.findByIdAndDelete(id);
+        GoiYService.xoaToanBoCache();
         return { success: true, message: 'Đã xóa phiếu mượn thành công.' };
     }
 }

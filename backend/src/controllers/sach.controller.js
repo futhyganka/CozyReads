@@ -1,6 +1,31 @@
 const SachService = require('../services/sach.service');
+const GoiYService = require('../services/goiy.service');
+const { ROLES } = require('../constants/permissions');
 
 class SachController {
+    // [GET] /api/sachs/goi-y hoặc /api/sach/goi-y - Gợi ý sách thông minh KNN / Nổi bật
+    static async getGoiYSach(req, res, next) {
+        try {
+            const isDocGia =
+                req.user &&
+                (req.user.role === ROLES.DOCGIA ||
+                    req.user.maVaiTro === ROLES.DOCGIA) &&
+                req.user._id;
+
+            const docGiaId = isDocGia ? req.user._id : null;
+            const limit = parseInt(req.query.limit, 10) || 10;
+
+            const ketQua = await GoiYService.layGoiYSach({
+                docGiaId,
+                limit,
+            });
+
+            res.json({ success: true, ...ketQua });
+        } catch (error) {
+            next(error);
+        }
+    }
+
     // [GET] /api/sachs hoặc /api/sach - Tra cứu, lọc, phân trang
     static async getDanhSachSach(req, res, next) {
         try {

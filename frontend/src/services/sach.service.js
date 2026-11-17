@@ -4,6 +4,9 @@ export const sachService = {
     getDanhSachSach(params = {}) {
         return api.get('/sachs', { params });
     },
+    getGoiYSach(params = {}) {
+        return api.get('/sachs/goi-y', { params });
+    },
     getChiTietSach(id) {
         return api.get(`/sachs/${id}`);
     },

@@ -34,7 +34,16 @@ const selectedPhuongThuc = ref('tienMat');
 const submittingRenewal = ref(false);
 
 const profile = computed(() => authStore.userProfile || {});
-const maxBooks = computed(() => getHanMucMuonTheoDiem(profile.value.diemDocGia));
+const isCardActivated = computed(
+    () =>
+        !(
+            profile.value.loaiDocGia === 'docGia_tuDo' &&
+            !profile.value.ngayHetHanThe
+        ),
+);
+const maxBooks = computed(() =>
+    isCardActivated.value ? getHanMucMuonTheoDiem(profile.value.diemDocGia) : 0,
+);
 
 function handleRequestRenewal() {
     confirm.require({
@@ -136,7 +145,7 @@ onMounted(async () => {
             <Card>
                 <template #title>Điểm Uy tín & Hạn mức Mượn sách</template>
                 <template #content>
-                    <div class="cr-flex-col cr-gap-md">
+                    <div v-if="isCardActivated" class="cr-flex-col cr-gap-md">
                         <div class="cr-flex-between">
                             <span>Điểm uy tín hiện tại:</span>
                             <strong style="font-size: 1.4rem; color: var(--cr-primary)">
@@ -154,6 +163,23 @@ onMounted(async () => {
                             Mốc tích điểm không vi phạm gần nhất:
                             <strong>{{ formatDate(profile.ngayCapNhatDiemKhongViPham) }}</strong>
                             (Mỗi 3 ngày không có sách quá hạn/báo mất được +1 điểm).
+                        </div>
+                    </div>
+
+                    <div v-else class="cr-flex-col cr-gap-md">
+                        <div class="cr-flex-between">
+                            <span>Điểm uy tín hiện tại:</span>
+                            <Tag value="Chưa kích hoạt" severity="warn" />
+                        </div>
+
+                        <ProgressBar :value="0" :showValue="false" />
+
+                        <Message severity="warn" :closable="false">
+                            Điểm uy tín (<strong>100 điểm ban đầu</strong>) và hạn mức mượn sách sẽ được kích hoạt ngay sau khi bạn hoàn tất thanh toán gói thẻ.
+                        </Message>
+
+                        <div class="cr-muted">
+                            Hạn mức mượn hiện tại: <strong>0 cuốn</strong> (chờ kích hoạt gói thẻ).
                         </div>
                     </div>
                 </template>

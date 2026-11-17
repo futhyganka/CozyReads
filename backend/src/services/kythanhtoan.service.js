@@ -233,6 +233,7 @@ class KyThanhToanService {
                 thanhToan.goiGiaHan &&
                 GOI_GIA_HAN[thanhToan.goiGiaHan]
             ) {
+                const isFirstActivation = !docGia.ngayHetHanThe;
                 const soNgayThem = GOI_GIA_HAN[thanhToan.goiGiaHan].soNgay;
                 const mocBatDau =
                     docGia.ngayHetHanThe &&
@@ -245,6 +246,9 @@ class KyThanhToanService {
                 );
                 docGia.chuKyThanhToan = thanhToan.goiGiaHan;
                 docGia.ngayBatDauKyThanhToan = thoiDiemXacNhan;
+                if (isFirstActivation) {
+                    docGia.ngayCapNhatDiemKhongViPham = thoiDiemXacNhan;
+                }
 
                 if (docGia.trangThaiTaiKhoan === TRANG_THAI_DOC_GIA.TAM_KHOA) {
                     docGia.trangThaiTaiKhoan = TRANG_THAI_DOC_GIA.HOAT_DONG;

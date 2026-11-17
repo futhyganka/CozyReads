@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive, onMounted, watch } from 'vue';
+import { ref, reactive, onMounted, onUnmounted, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
 import { useConfirm } from 'primevue/useconfirm';
@@ -36,6 +36,19 @@ const categories = ref([]);
 const authors = ref([]);
 const publishers = ref([]);
 
+const DEFAULT_ROWS_COUNT = 3;
+
+function getColumnsByViewport() {
+    if (typeof window === 'undefined') return 4;
+    const w = window.innerWidth;
+    if (w <= 540) return 1;
+    if (w <= 820) return 2;
+    if (w <= 1100) return 3;
+    return 4;
+}
+
+const gridColumns = ref(getColumnsByViewport());
+
 const filters = reactive({
     search: route.query.search || '',
     danhMuc: route.query.danhMuc || null,
@@ -45,8 +58,18 @@ const filters = reactive({
     maxGia: null,
     conHang: false,
     page: 1,
-    limit: 12,
+    limit: gridColumns.value * DEFAULT_ROWS_COUNT,
 });
+
+function handleViewportResize() {
+    const nextCols = getColumnsByViewport();
+    if (nextCols !== gridColumns.value) {
+        gridColumns.value = nextCols;
+        filters.limit = nextCols * DEFAULT_ROWS_COUNT;
+        filters.page = 1;
+        fetchBooks();
+    }
+}
 
 async function loadFilterOptions() {
     try {
@@ -113,7 +136,6 @@ function handleResetFilter() {
 
 function onPageChange(event) {
     filters.page = event.page + 1;
-    filters.limit = event.rows;
     fetchBooks();
 }
 
@@ -179,8 +201,13 @@ watch(
 );
 
 onMounted(() => {
+    window.addEventListener('resize', handleViewportResize);
     loadFilterOptions();
     fetchBooks();
+});
+
+onUnmounted(() => {
+    window.removeEventListener('resize', handleViewportResize);
 });
 </script>
 
@@ -316,7 +343,7 @@ onMounted(() => {
         </div>
 
         <div v-if="loading" class="cr-grid-books">
-            <Card v-for="n in 8" :key="n">
+            <Card v-for="n in filters.limit" :key="n">
                 <template #content>
                     <Skeleton height="220px" style="margin-bottom: 1rem" />
                     <Skeleton width="75%" height="1.4rem" style="margin-bottom: 0.5rem" />
@@ -351,7 +378,7 @@ onMounted(() => {
                     :rows="filters.limit"
                     :totalRecords="totalRecords"
                     :first="(filters.page - 1) * filters.limit"
-                    :rowsPerPageOptions="[8, 12, 24]"
+                    template="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink JumpToPageInput"
                     @page="onPageChange"
                 />
             </div>
