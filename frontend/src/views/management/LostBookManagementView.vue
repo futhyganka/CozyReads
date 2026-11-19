@@ -109,7 +109,7 @@ onMounted(() => {
     <Card>
         <template #title>
             <div class="cr-flex-between cr-flex-wrap">
-                <span>Xử lý Báo mất / Hỏng sách & Bồi thường</span>
+                <span>Xử lý báo mất / hỏng sách & bồi thường</span>
                 <div class="cr-items-center">
                     <Button
                         label="Xác nhận tiền bồi thường"
@@ -139,7 +139,7 @@ onMounted(() => {
                         Sách đang mượn / quá hạn ({{ activeBorrows.length }})
                     </Tab>
                     <Tab value="lost">
-                        Danh sách Đã báo mất & Đã bồi thường ({{ lostRecords.length }})
+                        Danh sách đã báo mất & đã bồi thường ({{ lostRecords.length }})
                     </Tab>
                 </TabList>
 
@@ -234,7 +234,7 @@ onMounted(() => {
 
     <Dialog
         v-model:visible="dialogVisible"
-        header="Xác nhận Ghi nhận Mất / Hỏng Sách"
+        header="Xác nhận ghi nhận mất / hỏng sách"
         modal
         :style="{ width: '480px' }"
     >

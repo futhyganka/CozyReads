@@ -6,6 +6,7 @@ import Menubar from 'primevue/menubar';
 import Button from 'primevue/button';
 import Tag from 'primevue/tag';
 import Divider from 'primevue/divider';
+import CozySmartWidget from '@/components/chat/CozySmartWidget.vue';
 import { useAuthStore } from '@/stores/auth.store';
 import logoImg from '@/assets/logo.png';
 
@@ -92,16 +93,24 @@ function handleLogout() {
                                     "
                                     :value="`${authStore.userProfile.diemDocGia} điểm uy tín`"
                                     severity="success"
-                                    icon="pi pi-star-fill"
                                 />
                                 <Button
-                                    :label="authStore.displayName"
-                                    icon="pi pi-user"
                                     severity="secondary"
                                     outlined
                                     size="small"
+                                    style="display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.3rem 0.65rem"
                                     @click="router.push('/tai-khoan')"
-                                />
+                                >
+                                    <img
+                                        v-if="authStore.userProfile?.avatar"
+                                        :src="authStore.userProfile.avatar"
+                                        alt="Avatar"
+                                        referrerpolicy="no-referrer"
+                                        style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover; display: block; flex-shrink: 0"
+                                    />
+                                    <i v-else class="pi pi-user"></i>
+                                    <span>{{ authStore.displayName }}</span>
+                                </Button>
                                 <Button
                                     icon="pi pi-sign-out"
                                     severity="secondary"
@@ -196,5 +205,8 @@ function handleLogout() {
                 </div>
             </div>
         </footer>
+
+        <!-- CozySmart AI Floating Chatbot Widget -->
+        <CozySmartWidget />
     </div>
 </template>

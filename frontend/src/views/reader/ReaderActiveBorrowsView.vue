@@ -43,7 +43,7 @@ onMounted(() => {
     <Card>
         <template #title>
             <div class="cr-flex-between">
-                <span>Sách Đang Mượn / Chưa Hoàn Tất</span>
+                <span>Sách đang mượn / chưa hoàn tất</span>
                 <Button
                     icon="pi pi-refresh"
                     severity="secondary"

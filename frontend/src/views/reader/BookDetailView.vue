@@ -94,18 +94,18 @@ function handleReserveBook(targetBook = book.value) {
     if (!authStore.isReader) {
         toast.add({
             severity: 'info',
-            summary: 'Dành cho Độc giả',
-            detail: 'Nhân viên vui lòng tạo phiếu mượn tại Cổng Quản lý.',
+            summary: 'Dành cho độc giả',
+            detail: 'Nhân viên vui lòng tạo phiếu mượn tại cổng quản lý.',
             life: 3500,
         });
         return;
     }
 
     confirm.require({
-        header: 'Xác nhận Giữ sách trực tuyến (24h)',
+        header: 'Xác nhận giữ sách trực tuyến (24h)',
         message: `Đặt giữ cuốn "${targetBook.tenSach}"? Bạn có 24 giờ để đến quầy thư viện nhận sách.`,
         icon: 'pi pi-bookmark',
-        acceptLabel: 'Xác nhận Giữ sách',
+        acceptLabel: 'Xác nhận giữ sách',
         rejectLabel: 'Hủy',
         accept: async () => {
             reserving.value = true;

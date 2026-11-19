@@ -90,7 +90,7 @@ async function loadDashboard() {
 
 function handleConfirmReservation(item) {
     confirm.require({
-        header: 'Xác nhận Giao sách tại Quầy',
+        header: 'Xác nhận giao sách tại quầy',
         message: `Xác nhận độc giả "${item.maDocGia?.hoLot || ''} ${item.maDocGia?.ten || ''}" nhận cuốn "${item.maSach?.tenSach}" (hạn mượn 14 ngày)?`,
         icon: 'pi pi-check-circle',
         acceptLabel: 'Xác nhận cho mượn',
@@ -128,7 +128,7 @@ onMounted(() => {
     <div class="cr-flex-col cr-gap-lg">
         <div class="cr-page-header" style="margin-bottom: 0">
             <div>
-                <h1 class="cr-page-title">Dashboard Nghiệp vụ Thư viện</h1>
+                <h1 class="cr-page-title">Dashboard nghiệp vụ thư viện</h1>
                 <p class="cr-page-subtitle">
                     Tổng hợp tình hình mượn trả, giữ sách trực tuyến và giao dịch chờ xử lý tại quầy
                 </p>
@@ -136,8 +136,7 @@ onMounted(() => {
             <div class="cr-items-center">
                 <Button
                     label="Tạo phiếu mượn tại quầy"
-                    icon="pi pi-plus"
-                    @click="router.push('/quan-ly/muon-giu-sach')"
+                    @click="router.push('/quan-ly/phieu-muon')"
                 />
                 <Button
                     icon="pi pi-refresh"
@@ -150,103 +149,17 @@ onMounted(() => {
 
         <Message v-if="errorMsg" severity="error">{{ errorMsg }}</Message>
 
-        <div class="cr-grid-stats">
-            <Card>
-                <template #content>
-                    <div class="cr-flex-between">
-                        <div>
-                            <div class="cr-muted">Phiếu giữ sách chờ nhận (24h)</div>
-                            <div style="font-size: 1.75rem; font-weight: 800; color: var(--cr-primary)">
-                                {{ summary.pendingReservations }}
-                            </div>
-                        </div>
-                        <i class="pi pi-bookmark" style="font-size: 2rem; color: var(--cr-primary)"></i>
-                    </div>
-                </template>
-            </Card>
-
-            <Card>
-                <template #content>
-                    <div class="cr-flex-between">
-                        <div>
-                            <div class="cr-muted">Lượt sách đang mượn</div>
-                            <div style="font-size: 1.75rem; font-weight: 800">
-                                {{ summary.activeBorrows }}
-                            </div>
-                        </div>
-                        <i class="pi pi-book" style="font-size: 2rem; color: var(--cr-sage-dark)"></i>
-                    </div>
-                </template>
-            </Card>
-
-            <Card>
-                <template #content>
-                    <div class="cr-flex-between">
-                        <div>
-                            <div class="cr-muted">Lượt mượn quá hạn</div>
-                            <div style="font-size: 1.75rem; font-weight: 800; color: #C53030">
-                                {{ summary.overdueBorrows }}
-                            </div>
-                        </div>
-                        <i class="pi pi-exclamation-circle" style="font-size: 2rem; color: #C53030"></i>
-                    </div>
-                </template>
-            </Card>
-
-            <Card>
-                <template #content>
-                    <div class="cr-flex-between">
-                        <div>
-                            <div class="cr-muted">Giao dịch chờ xác nhận</div>
-                            <div style="font-size: 1.75rem; font-weight: 800">
-                                {{ summary.pendingPayments }}
-                            </div>
-                        </div>
-                        <i class="pi pi-wallet" style="font-size: 2rem; color: var(--cr-primary)"></i>
-                    </div>
-                </template>
-            </Card>
-
-            <Card>
-                <template #content>
-                    <div class="cr-flex-between">
-                        <div>
-                            <div class="cr-muted">Tổng đầu sách</div>
-                            <div style="font-size: 1.75rem; font-weight: 800">
-                                {{ summary.totalBooks }}
-                            </div>
-                        </div>
-                        <i class="pi pi-database" style="font-size: 2rem; color: var(--cr-sage-dark)"></i>
-                    </div>
-                </template>
-            </Card>
-
-            <Card>
-                <template #content>
-                    <div class="cr-flex-between">
-                        <div>
-                            <div class="cr-muted">Tổng hồ sơ độc giả</div>
-                            <div style="font-size: 1.75rem; font-weight: 800">
-                                {{ summary.totalReaders }}
-                            </div>
-                        </div>
-                        <i class="pi pi-users" style="font-size: 2rem; color: var(--cr-primary)"></i>
-                    </div>
-                </template>
-            </Card>
-        </div>
-
         <div class="cr-grid-2">
             <Card>
                 <template #title>
                     <div class="cr-flex-between">
-                        <span>Yêu cầu Giữ sách Chờ Nhận (24h)</span>
+                        <span>Yêu cầu giữ sách chờ nhận (24h)</span>
                         <Button
                             label="Xem tất cả"
                             size="small"
                             severity="secondary"
                             text
-                            @click="router.push('/quan-ly/muon-giu-sach')"
+                            @click="router.push('/quan-ly/phieu-muon')"
                         />
                     </div>
                 </template>
@@ -275,7 +188,6 @@ onMounted(() => {
                             <template #body="{ data }">
                                 <Button
                                     label="Giao sách"
-                                    icon="pi pi-check"
                                     size="small"
                                     @click="handleConfirmReservation(data)"
                                 />
@@ -288,7 +200,7 @@ onMounted(() => {
             <Card>
                 <template #title>
                     <div class="cr-flex-between">
-                        <span>Khoản Thanh toán Chờ Xác nhận</span>
+                        <span>Khoản thanh toán chờ xác nhận</span>
                         <Button
                             label="Quản lý thanh toán"
                             size="small"

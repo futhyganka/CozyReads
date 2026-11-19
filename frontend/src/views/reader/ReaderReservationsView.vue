@@ -46,7 +46,7 @@ onMounted(() => {
     <Card>
         <template #title>
             <div class="cr-flex-between cr-flex-wrap">
-                <span>Yêu cầu Giữ sách Trực tuyến (24 giờ)</span>
+                <span>Yêu cầu giữ sách trực tuyến (24 giờ)</span>
                 <div class="cr-items-center">
                     <Button
                         label="Khám phá & Đặt giữ thêm"

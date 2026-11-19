@@ -125,7 +125,7 @@ async function handleSave() {
 
 function handleDelete(item) {
     confirm.require({
-        header: 'Xác nhận Xóa Tác giả',
+        header: 'Xác nhận xóa tác giả',
         message: `Xóa tác giả "${item.tenTg}" (${item.maTG})?`,
         icon: 'pi pi-trash',
         acceptLabel: 'Xóa',
@@ -161,13 +161,13 @@ onMounted(() => {
     <Card>
         <template #title>
             <div class="cr-flex-between">
-                <span>Quản lý Tác giả</span>
-                <Button label="Thêm Tác giả" icon="pi pi-plus" @click="openCreate" />
+                <span>Quản lý tác giả</span>
+                <Button label="Thêm tác giả" @click="openCreate" />
             </div>
         </template>
         <template #content>
             <div class="cr-toolbar">
-                <div class="cr-items-center">
+                <div class="cr-items-center cr-flex-wrap">
                     <InputText
                         v-model="search"
                         placeholder="Tìm mã, tên tác giả, quốc tịch..."
@@ -182,6 +182,18 @@ onMounted(() => {
                         severity="secondary"
                         outlined
                         @click="
+                            page = 1;
+                            fetchAuthors();
+                        "
+                    />
+                    <Button
+                        v-if="search"
+                        label="Đặt lại"
+                        icon="pi pi-filter-slash"
+                        severity="secondary"
+                        outlined
+                        @click="
+                            search = '';
                             page = 1;
                             fetchAuthors();
                         "
@@ -228,14 +240,14 @@ onMounted(() => {
 
     <Dialog
         v-model:visible="dialogVisible"
-        :header="isEditing ? 'Cập nhật Tác giả' : 'Thêm Tác giả mới'"
+        :header="isEditing ? 'Cập nhật tác giả' : 'Thêm tác giả mới'"
         modal
         :style="{ width: '440px' }"
     >
         <form class="cr-flex-col cr-gap-md" @submit.prevent="handleSave">
             <Message v-if="formError" severity="error">{{ formError }}</Message>
             <div class="cr-field">
-                <label class="cr-label">Mã tác giả (Để trống tự sinh)</label>
+                <label class="cr-label">Mã tác giả (để trống tự sinh)</label>
                 <InputText v-model="form.maTG" :disabled="isEditing" fluid />
             </div>
             <div class="cr-field">
@@ -254,7 +266,7 @@ onMounted(() => {
                     outlined
                     @click="dialogVisible = false"
                 />
-                <Button type="submit" label="Lưu" icon="pi pi-save" :loading="saving" />
+                <Button type="submit" label="Lưu" :loading="saving" />
             </div>
         </form>
     </Dialog>

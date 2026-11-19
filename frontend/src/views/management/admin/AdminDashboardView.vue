@@ -162,15 +162,14 @@ onMounted(() => {
     <div class="cr-flex-col cr-gap-lg">
         <div class="cr-page-header" style="margin-bottom: 0">
             <div>
-                <h1 class="cr-page-title">Dashboard Quản trị Hệ thống (Admin)</h1>
+                <h1 class="cr-page-title">Dashboard quản trị hệ thống (Admin)</h1>
                 <p class="cr-page-subtitle">
                     Tổng hợp dữ liệu nhân sự, tài khoản, lưu thông sách và nguồn thu phí thực tế từ hệ thống
                 </p>
             </div>
             <div class="cr-items-center">
                 <Button
-                    label="Quản lý Nhân viên"
-                    icon="pi pi-sitemap"
+                    label="Quản lý nhân viên"
                     @click="router.push('/quan-ly/admin/nhan-vien')"
                 />
                 <Button
@@ -184,72 +183,16 @@ onMounted(() => {
 
         <Message v-if="errorMsg" severity="error">{{ errorMsg }}</Message>
 
-        <div class="cr-grid-stats">
-            <Card>
-                <template #content>
-                    <div class="cr-muted">Tổng nhân sự hệ thống</div>
-                    <div style="font-size: 1.75rem; font-weight: 800; color: var(--cr-primary)">
-                        {{ staffList.length }} nhân viên
-                    </div>
-                    <div class="cr-muted">
-                        Đang làm việc:
-                        {{ staffList.filter((s) => !s.daNghiViec).length }}
-                    </div>
-                </template>
-            </Card>
-
-            <Card>
-                <template #content>
-                    <div class="cr-muted">Tổng hồ sơ độc giả</div>
-                    <div style="font-size: 1.75rem; font-weight: 800">
-                        {{ readersList.length }} độc giả
-                    </div>
-                    <div class="cr-muted">
-                        Đang hoạt động:
-                        {{
-                            readersList.filter(
-                                (r) => r.trangThaiTaiKhoan === 'hoatDong',
-                            ).length
-                        }}
-                    </div>
-                </template>
-            </Card>
-
-            <Card>
-                <template #content>
-                    <div class="cr-muted">Tổng đầu sách trong kho</div>
-                    <div style="font-size: 1.75rem; font-weight: 800">
-                        {{ totalBooks }} đầu sách
-                    </div>
-                    <div class="cr-muted">
-                        Đang mượn: {{ borrowCounts.dangMuon }} lượt
-                    </div>
-                </template>
-            </Card>
-
-            <Card>
-                <template #content>
-                    <div class="cr-muted">Tổng phí đã xác nhận thu</div>
-                    <div style="font-size: 1.65rem; font-weight: 800; color: var(--cr-sage-dark)">
-                        {{ formatCurrency(totalPaidAmount) }}
-                    </div>
-                    <div class="cr-muted">
-                        Tổng số GD: {{ paymentsList.length }}
-                    </div>
-                </template>
-            </Card>
-        </div>
-
         <div class="cr-grid-2">
             <Card>
-                <template #title>Thống kê Phiếu Mượn theo Trạng thái</template>
+                <template #title>Thống kê phiếu mượn theo trạng thái</template>
                 <template #content>
                     <Chart type="bar" :data="borrowChartData" />
                 </template>
             </Card>
 
             <Card>
-                <template #title>Tỷ lệ Trạng thái Thẻ Độc giả</template>
+                <template #title>Tỷ lệ trạng thái thẻ độc giả</template>
                 <template #content>
                     <div style="max-width: 320px; margin: 0 auto">
                         <Chart type="doughnut" :data="readerStatusChartData" />

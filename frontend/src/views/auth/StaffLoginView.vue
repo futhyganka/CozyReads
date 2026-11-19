@@ -57,12 +57,12 @@ async function handleStaffLogin() {
         <template #title>
             <div class="cr-flex-col cr-flex-center cr-gap-xs" style="text-align: center">
                 <Tag value="Management Portal" severity="secondary" icon="pi pi-shield" />
-                <span>Đăng nhập Nội bộ Nhân viên & Quản trị</span>
+                <span>Đăng nhập nội bộ nhân viên & quản trị</span>
             </div>
         </template>
         <template #subtitle>
             <div style="text-align: center">
-                Khu vực dành riêng cho Thủ thư, Quản lý và Quản trị viên hệ thống CozyReads
+                Khu vực dành riêng cho thủ thư, quản lý và quản trị viên hệ thống CozyReads
             </div>
         </template>
         <template #content>
@@ -106,7 +106,7 @@ async function handleStaffLogin() {
 
                 <Button
                     type="submit"
-                    label="Đăng nhập Cổng Quản lý"
+                    label="Đăng nhập cổng quản lý"
                     icon="pi pi-briefcase"
                     :loading="authStore.loading"
                     fluid

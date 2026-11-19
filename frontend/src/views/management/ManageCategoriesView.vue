@@ -126,7 +126,7 @@ async function handleSave() {
 
 function handleDelete(item) {
     confirm.require({
-        header: 'Xác nhận Xóa Danh mục',
+        header: 'Xác nhận xóa danh mục',
         message: `Xóa danh mục "${item.tenDm}" (${item.maDM})? Hệ thống sẽ từ chối nếu đang có sách thuộc danh mục này.`,
         icon: 'pi pi-trash',
         acceptLabel: 'Xóa',
@@ -162,16 +162,16 @@ onMounted(() => {
     <Card>
         <template #title>
             <div class="cr-flex-between">
-                <span>Quản lý Danh mục Sách</span>
-                <Button label="Thêm Danh mục" icon="pi pi-plus" @click="openCreate" />
+                <span>Quản lý danh mục sách</span>
+                <Button label="Thêm danh mục" @click="openCreate" />
             </div>
         </template>
         <template #content>
             <div class="cr-toolbar">
-                <div class="cr-items-center">
+                <div class="cr-items-center cr-flex-wrap">
                     <InputText
                         v-model="search"
-                        placeholder="Tìm mã hoặc tên danh mục..."
+                        placeholder="Tìm mã hoặc tên danh mục, mô tả..."
                         @keyup.enter="
                             page = 1;
                             fetchCategories();
@@ -183,6 +183,18 @@ onMounted(() => {
                         severity="secondary"
                         outlined
                         @click="
+                            page = 1;
+                            fetchCategories();
+                        "
+                    />
+                    <Button
+                        v-if="search"
+                        label="Đặt lại"
+                        icon="pi pi-filter-slash"
+                        severity="secondary"
+                        outlined
+                        @click="
+                            search = '';
                             page = 1;
                             fetchCategories();
                         "
@@ -229,14 +241,14 @@ onMounted(() => {
 
     <Dialog
         v-model:visible="dialogVisible"
-        :header="isEditing ? 'Cập nhật Danh mục' : 'Thêm Danh mục mới'"
+        :header="isEditing ? 'Cập nhật danh mục' : 'Thêm danh mục mới'"
         modal
         :style="{ width: '460px' }"
     >
         <form class="cr-flex-col cr-gap-md" @submit.prevent="handleSave">
             <Message v-if="formError" severity="error">{{ formError }}</Message>
             <div class="cr-field">
-                <label class="cr-label">Mã danh mục (Để trống tự sinh)</label>
+                <label class="cr-label">Mã danh mục (để trống tự sinh)</label>
                 <InputText v-model="form.maDM" :disabled="isEditing" fluid />
             </div>
             <div class="cr-field">
@@ -255,7 +267,7 @@ onMounted(() => {
                     outlined
                     @click="dialogVisible = false"
                 />
-                <Button type="submit" label="Lưu" icon="pi pi-save" :loading="saving" />
+                <Button type="submit" label="Lưu" :loading="saving" />
             </div>
         </form>
     </Dialog>

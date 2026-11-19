@@ -47,7 +47,7 @@ const maxBooks = computed(() =>
 
 function handleRequestRenewal() {
     confirm.require({
-        header: 'Xác nhận Tạo yêu cầu Gia hạn thẻ',
+        header: 'Xác nhận tạo yêu cầu gia hạn thẻ',
         message: 'Hệ thống sẽ tạo khoản phí gia hạn thẻ tương ứng. Bạn có thể thanh toán và nhờ nhân viên xác nhận tại quầy.',
         icon: 'pi pi-calendar-plus',
         acceptLabel: 'Tạo yêu cầu gia hạn',
@@ -98,9 +98,38 @@ onMounted(async () => {
     <div class="cr-flex-col cr-gap-lg">
         <div class="cr-grid-2">
             <Card>
-                <template #title>Thông tin Thẻ Độc giả</template>
+                <template #title>Thông tin thẻ độc giả</template>
                 <template #content>
                     <div class="cr-flex-col cr-gap-sm">
+                        <div
+                            class="cr-items-center"
+                            style="gap: 0.875rem; padding-bottom: 0.5rem; margin-bottom: 0.25rem; border-bottom: 1px dashed var(--cr-border)"
+                        >
+                            <div
+                                style="width: 56px; height: 56px; border-radius: 50%; border: 1px solid var(--cr-border); overflow: hidden; background: var(--cr-sage-light); display: flex; align-items: center; justify-content: center; flex-shrink: 0"
+                            >
+                                <img
+                                    v-if="profile.avatar"
+                                    :src="profile.avatar"
+                                    alt="Ảnh thẻ độc giả"
+                                    referrerpolicy="no-referrer"
+                                    style="width: 100%; height: 100%; object-fit: cover"
+                                />
+                                <i
+                                    v-else
+                                    class="pi pi-user"
+                                    style="font-size: 1.4rem; color: var(--cr-sage-dark)"
+                                ></i>
+                            </div>
+                            <div class="cr-flex-col">
+                                <strong style="font-size: 1.05rem">
+                                    {{ profile.hoLot }} {{ profile.ten }}
+                                </strong>
+                                <span class="cr-muted">
+                                    {{ profile.email || profile.dienThoai || '' }}
+                                </span>
+                            </div>
+                        </div>
                         <div class="cr-flex-between">
                             <span class="cr-muted">Mã thẻ độc giả:</span>
                             <Tag :value="profile.maDocGia" severity="secondary" />
@@ -143,7 +172,7 @@ onMounted(async () => {
             </Card>
 
             <Card>
-                <template #title>Điểm Uy tín & Hạn mức Mượn sách</template>
+                <template #title>Điểm uy tín & hạn mức mượn sách</template>
                 <template #content>
                     <div v-if="isCardActivated" class="cr-flex-col cr-gap-md">
                         <div class="cr-flex-between">
@@ -191,8 +220,8 @@ onMounted(async () => {
             <template #title>
                 {{
                     profile.ngayHetHanThe
-                        ? 'Đăng ký Gia hạn Thẻ Độc giả Tự do'
-                        : 'Đăng ký Gói Kích hoạt Thẻ Độc giả Tự do'
+                        ? 'Đăng ký gia hạn thẻ độc giả tự do'
+                        : 'Đăng ký gói kích hoạt thẻ độc giả tự do'
                 }}
             </template>
             <template #subtitle>
@@ -235,7 +264,7 @@ onMounted(async () => {
                 </div>
                 <div style="margin-top: 1rem">
                     <Button
-                        label="Tạo yêu cầu Thanh toán Gia hạn"
+                        label="Tạo yêu cầu thanh toán gia hạn"
                         icon="pi pi-calendar-plus"
                         :loading="submittingRenewal"
                         @click="handleRequestRenewal"
@@ -245,7 +274,7 @@ onMounted(async () => {
         </Card>
 
         <Card v-else>
-            <template #title>Chế độ Gia hạn Tự động Miễn phí</template>
+            <template #title>Chế độ gia hạn tự động miễn phí</template>
             <template #content>
                 <Message severity="success" :closable="false">
                     Thẻ của bạn thuộc nhóm <strong>{{ getLoaiDocGiaLabel(profile.loaiDocGia) }}</strong> nên được hệ thống tự động gia hạn miễn phí theo chu kỳ 6 tháng (180 ngày) khi đến hạn.
@@ -254,7 +283,7 @@ onMounted(async () => {
         </Card>
 
         <Card>
-            <template #title>Bảng Thang điểm Uy tín CozyReads</template>
+            <template #title>Bảng thang điểm uy tín CozyReads</template>
             <template #content>
                 <DataTable :value="THANG_DIEM_MUON_SACH" size="small">
                     <Column header="Khoảng điểm">

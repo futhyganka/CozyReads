@@ -170,7 +170,7 @@ async function handleResetPassword() {
 <template>
     <Card>
         <template #title>
-            <div style="text-align: center">Khôi phục Mật khẩu Độc giả</div>
+            <div style="text-align: center">Khôi phục mật khẩu độc giả</div>
         </template>
         <template #subtitle>
             <div style="text-align: center">
@@ -261,7 +261,7 @@ async function handleResetPassword() {
                                 />
                                 <Button
                                     type="button"
-                                    label="Quay lại đổi Email"
+                                    label="Quay lại đổi email"
                                     icon="pi pi-arrow-left"
                                     severity="secondary"
                                     outlined
@@ -314,7 +314,7 @@ async function handleResetPassword() {
                             </div>
                             <Button
                                 type="submit"
-                                label="Đặt lại Mật khẩu"
+                                label="Đặt lại mật khẩu"
                                 icon="pi pi-check-circle"
                                 :loading="loading"
                                 fluid
@@ -326,7 +326,7 @@ async function handleResetPassword() {
 
             <div class="cr-muted" style="text-align: center; margin-top: 1rem">
                 Nhớ mật khẩu?
-                <router-link to="/dang-nhap">Quay lại Đăng nhập</router-link>
+                <router-link to="/dang-nhap">Quay lại đăng nhập</router-link>
             </div>
         </template>
     </Card>

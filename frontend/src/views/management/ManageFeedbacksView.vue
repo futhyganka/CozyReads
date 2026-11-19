@@ -174,80 +174,11 @@ onMounted(() => {
             </div>
             <Button
                 label="Làm mới"
-                icon="pi pi-refresh"
                 severity="secondary"
                 outlined
                 :loading="loading"
                 @click="fetchFeedbacks"
             />
-        </div>
-
-        <!-- Thẻ thống kê -->
-        <div class="cr-grid-stats cr-section">
-            <Card>
-                <template #content>
-                    <div class="cr-flex-between">
-                        <div>
-                            <div class="cr-muted">Tổng số góp ý</div>
-                            <div style="font-size: 1.75rem; font-weight: 800">
-                                {{ stats.tongSo }}
-                            </div>
-                        </div>
-                        <i
-                            class="pi pi-comment"
-                            style="font-size: 2rem; color: var(--cr-primary)"
-                        ></i>
-                    </div>
-                </template>
-            </Card>
-            <Card>
-                <template #content>
-                    <div class="cr-flex-between">
-                        <div>
-                            <div class="cr-muted">Chờ xử lý</div>
-                            <div style="font-size: 1.75rem; font-weight: 800">
-                                {{ stats.choXuLy }}
-                            </div>
-                        </div>
-                        <i
-                            class="pi pi-clock"
-                            style="font-size: 2rem; color: #d97706"
-                        ></i>
-                    </div>
-                </template>
-            </Card>
-            <Card>
-                <template #content>
-                    <div class="cr-flex-between">
-                        <div>
-                            <div class="cr-muted">Đang xử lý</div>
-                            <div style="font-size: 1.75rem; font-weight: 800">
-                                {{ stats.dangXuLy }}
-                            </div>
-                        </div>
-                        <i
-                            class="pi pi-spin pi-cog"
-                            style="font-size: 2rem; color: #2563eb"
-                        ></i>
-                    </div>
-                </template>
-            </Card>
-            <Card>
-                <template #content>
-                    <div class="cr-flex-between">
-                        <div>
-                            <div class="cr-muted">Đã xử lý</div>
-                            <div style="font-size: 1.75rem; font-weight: 800">
-                                {{ stats.daXuLy }}
-                            </div>
-                        </div>
-                        <i
-                            class="pi pi-check-circle"
-                            style="font-size: 2rem; color: var(--cr-sage-dark)"
-                        ></i>
-                    </div>
-                </template>
-            </Card>
         </div>
 
         <!-- Bộ lọc -->
@@ -364,24 +295,11 @@ onMounted(() => {
                         </template>
                     </Column>
 
-                    <Column header="Nhân viên phụ trách">
-                        <template #body="{ data }">
-                            <template v-if="data.msnvXuLy">
-                                <div>
-                                    <strong>{{ data.msnvXuLy.hoTenNv }}</strong>
-                                </div>
-                                <div class="cr-muted">{{ data.msnvXuLy.msnv }}</div>
-                            </template>
-                            <span v-else class="cr-muted">Chưa phân công</span>
-                        </template>
-                    </Column>
-
                     <Column header="Thao tác">
                         <template #body="{ data }">
                             <div class="cr-items-center cr-flex-wrap">
                                 <Button
                                     label="Chi tiết"
-                                    icon="pi pi-eye"
                                     size="small"
                                     severity="secondary"
                                     outlined
@@ -390,7 +308,6 @@ onMounted(() => {
                                 <Button
                                     v-if="data.trangThai === TRANG_THAI_PHAN_HOI.CHO_XU_LY"
                                     label="Tiếp nhận"
-                                    icon="pi pi-inbox"
                                     size="small"
                                     severity="info"
                                     outlined
@@ -405,7 +322,6 @@ onMounted(() => {
                                 <Button
                                     v-if="data.trangThai !== TRANG_THAI_PHAN_HOI.DA_XU_LY"
                                     label="Đã xử lý"
-                                    icon="pi pi-check"
                                     size="small"
                                     severity="success"
                                     :loading="updatingId === data._id"
@@ -436,7 +352,7 @@ onMounted(() => {
         <!-- Dialog Xem chi tiết & Xử lý Góp ý (Không có gửi Email phản hồi) -->
         <Dialog
             v-model:visible="detailVisible"
-            header="Chi tiết Ý kiến Góp ý"
+            header="Chi tiết ý kiến góp ý"
             modal
             :style="{ width: '600px', maxWidth: '95vw' }"
         >
@@ -485,12 +401,12 @@ onMounted(() => {
                         </div>
                     </div>
                     <div>
-                        <span class="cr-muted">Nhân viên phụ trách:</span>
+                        <span class="cr-muted">Nhân viên xử lý:</span>
                         <div>
                             <strong v-if="selectedFeedback.msnvXuLy">
                                 {{ selectedFeedback.msnvXuLy.hoTenNv }} ({{ selectedFeedback.msnvXuLy.msnv }})
                             </strong>
-                            <span v-else class="cr-muted">Chưa phân công</span>
+                            <span v-else class="cr-muted">Chưa xử lý</span>
                         </div>
                     </div>
                 </div>
@@ -519,7 +435,6 @@ onMounted(() => {
                             "
                             type="button"
                             label="Tiếp nhận góp ý (Đang xử lý)"
-                            icon="pi pi-inbox"
                             severity="info"
                             outlined
                             :loading="updatingId === selectedFeedback._id"
@@ -536,8 +451,7 @@ onMounted(() => {
                                 TRANG_THAI_PHAN_HOI.DA_XU_LY
                             "
                             type="button"
-                            label="Đánh dấu Đã xử lý"
-                            icon="pi pi-check-circle"
+                            label="Đánh dấu đã xử lý"
                             severity="success"
                             :loading="updatingId === selectedFeedback._id"
                             @click="

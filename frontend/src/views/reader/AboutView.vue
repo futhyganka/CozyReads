@@ -7,7 +7,7 @@ import Tag from 'primevue/tag';
     <div class="cr-container cr-page">
         <div class="cr-page-header">
             <div>
-                <h1 class="cr-page-title">Giới thiệu Thư viện CozyReads</h1>
+                <h1 class="cr-page-title">Giới thiệu thư viện CozyReads</h1>
                 <p class="cr-page-subtitle">
                     Không gian đọc sách ấm áp, hiện đại với hệ thống quản lý minh bạch dựa trên điểm uy tín
                 </p>
@@ -29,7 +29,7 @@ import Tag from 'primevue/tag';
                 <template #title>Đối tượng phục vụ</template>
                 <template #content>
                     <div class="cr-flex-col cr-gap-xs cr-muted">
-                        <div>• <strong>Sinh viên & Giảng viên:</strong> Miễn phí gia hạn thẻ theo chu kỳ 6 tháng (180 ngày).</div>
+                        <div>• <strong>Sinh viên & giảng viên:</strong> Miễn phí gia hạn thẻ theo chu kỳ 6 tháng (180 ngày).</div>
                         <div>• <strong>Nhân viên nội bộ:</strong> Miễn phí thẻ đọc sách chu kỳ 6 tháng.</div>
                         <div>• <strong>Độc giả tự do:</strong> Linh hoạt lựa chọn gói thẻ 1 tháng, 3 tháng hoặc 6 tháng.</div>
                     </div>
@@ -44,7 +44,7 @@ import Tag from 'primevue/tag';
                     <div class="cr-flex-col cr-gap-xs">
                         <strong><i class="pi pi-check-circle"></i> Không phạt tiền quá hạn</strong>
                         <p class="cr-muted">
-                            CozyReads không thu tiền phạt trả sách trễ hạn mà sử dụng cơ chế Điểm uy tín tự động để khuyến khích ý thức trả sách đúng hạn.
+                            CozyReads không thu tiền phạt trả sách trễ hạn mà sử dụng cơ chế điểm uy tín tự động để khuyến khích ý thức trả sách đúng hạn.
                         </p>
                     </div>
                     <div class="cr-flex-col cr-gap-xs">

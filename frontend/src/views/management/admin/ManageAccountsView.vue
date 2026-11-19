@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
 import { useToast } from 'primevue/usetoast';
 import Card from 'primevue/card';
 import Tabs from 'primevue/tabs';
@@ -9,6 +9,7 @@ import TabPanels from 'primevue/tabpanels';
 import TabPanel from 'primevue/tabpanel';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
+import InputText from 'primevue/inputtext';
 import Password from 'primevue/password';
 import Select from 'primevue/select';
 import Button from 'primevue/button';
@@ -18,7 +19,10 @@ import Message from 'primevue/message';
 import StatusTag from '@/components/common/StatusTag.vue';
 import docGiaService from '@/services/docgia.service';
 import nhanVienService from '@/services/nhanvien.service';
-import { TRANG_THAI_DOC_GIA_OPTIONS } from '@/utils/constants';
+import {
+    TRANG_THAI_DOC_GIA_OPTIONS,
+    CHUC_VU_OPTIONS,
+} from '@/utils/constants';
 
 const toast = useToast();
 const activeTab = ref('readers');
@@ -26,6 +30,71 @@ const loading = ref(false);
 
 const readers = ref([]);
 const staffList = ref([]);
+
+const readerFilter = reactive({
+    search: '',
+    trangThai: null,
+});
+
+const staffFilter = reactive({
+    search: '',
+    chucVu: null,
+    accessStatus: null,
+});
+
+const staffAccessOptions = [
+    { label: 'Đang kích hoạt', value: 'active' },
+    { label: 'Đã thu hồi (Nghỉ việc)', value: 'revoked' },
+];
+
+const filteredReaders = computed(() => {
+    let list = readers.value;
+    if (readerFilter.trangThai) {
+        list = list.filter(
+            (r) => r.trangThaiTaiKhoan === readerFilter.trangThai,
+        );
+    }
+    const kw = readerFilter.search.trim().toLowerCase();
+    if (kw) {
+        list = list.filter((r) => {
+            const ma = (r.maDocGia || '').toLowerCase();
+            const hoTen = `${r.hoLot || ''} ${r.ten || ''}`
+                .trim()
+                .toLowerCase();
+            const email = (r.email || '').toLowerCase();
+            const sdt = (r.dienThoai || '').toLowerCase();
+            return (
+                ma.includes(kw) ||
+                hoTen.includes(kw) ||
+                email.includes(kw) ||
+                sdt.includes(kw)
+            );
+        });
+    }
+    return list;
+});
+
+const filteredStaff = computed(() => {
+    let list = staffList.value;
+    if (staffFilter.chucVu) {
+        list = list.filter((s) => s.chucVu === staffFilter.chucVu);
+    }
+    if (staffFilter.accessStatus === 'active') {
+        list = list.filter((s) => !s.daNghiViec);
+    } else if (staffFilter.accessStatus === 'revoked') {
+        list = list.filter((s) => Boolean(s.daNghiViec));
+    }
+    const kw = staffFilter.search.trim().toLowerCase();
+    if (kw) {
+        list = list.filter((s) => {
+            const msnv = (s.msnv || '').toLowerCase();
+            const hoTen = (s.hoTenNv || '').toLowerCase();
+            const sdt = (s.soDienThoai || '').toLowerCase();
+            return msnv.includes(kw) || hoTen.includes(kw) || sdt.includes(kw);
+        });
+    }
+    return list;
+});
 
 // Đặt lại mật khẩu bởi Admin
 const passDialogVisible = ref(false);
@@ -148,7 +217,7 @@ onMounted(() => {
     <Card>
         <template #title>
             <div class="cr-flex-between">
-                <span>Quản lý Tài khoản & Kiểm soát Truy cập (Admin)</span>
+                <span>Quản lý tài khoản & kiểm soát truy cập (Admin)</span>
                 <Button
                     icon="pi pi-refresh"
                     severity="secondary"
@@ -159,34 +228,90 @@ onMounted(() => {
             </div>
         </template>
         <template #subtitle>
-            Quản lý trạng thái hoạt động, thu hồi quyền truy cập và cấp lại mật khẩu cho Độc giả & Nhân viên
+            Quản lý trạng thái hoạt động, thu hồi quyền truy cập và cấp lại mật khẩu cho độc giả & nhân viên
         </template>
         <template #content>
             <Tabs v-model:value="activeTab">
                 <TabList>
                     <Tab value="readers">
-                        Tài khoản Độc giả ({{ readers.length }})
+                        Tài khoản độc giả ({{ readers.length }})
                     </Tab>
                     <Tab value="staff">
-                        Tài khoản Nhân viên ({{ staffList.length }})
+                        Tài khoản nhân viên ({{ staffList.length }})
                     </Tab>
                 </TabList>
 
                 <TabPanels>
                     <TabPanel value="readers">
+                        <div class="cr-toolbar">
+                            <div
+                                class="cr-items-center cr-flex-wrap"
+                                style="flex: 1"
+                            >
+                                <InputText
+                                    v-model="readerFilter.search"
+                                    placeholder="Tìm mã ĐG, họ tên, email, SĐT..."
+                                    style="min-width: 260px; flex: 1; max-width: 400px"
+                                />
+                                <Select
+                                    v-model="readerFilter.trangThai"
+                                    :options="TRANG_THAI_DOC_GIA_OPTIONS"
+                                    optionLabel="label"
+                                    optionValue="value"
+                                    placeholder="Trạng thái tài khoản"
+                                    showClear
+                                />
+                                <Button
+                                    v-if="
+                                        readerFilter.search ||
+                                        readerFilter.trangThai
+                                    "
+                                    label="Đặt lại"
+                                    icon="pi pi-filter-slash"
+                                    severity="secondary"
+                                    outlined
+                                    @click="
+                                        readerFilter.search = '';
+                                        readerFilter.trangThai = null;
+                                    "
+                                />
+                            </div>
+                        </div>
+
                         <DataTable
-                            :value="readers"
+                            :value="filteredReaders"
                             :loading="loading"
                             paginator
                             :rows="10"
+                            emptyMessage="Không tìm thấy tài khoản độc giả nào."
                         >
                             <Column field="maDocGia" header="Mã ĐG" />
-                            <Column header="Họ tên & Email">
+                            <Column header="Họ và tên">
                                 <template #body="{ data }">
-                                    <strong>{{ data.hoLot }} {{ data.ten }}</strong>
-                                    <div class="cr-muted">
-                                        {{ data.email || 'Chưa có email' }}
+                                    <div class="cr-items-center" style="gap: 0.65rem">
+                                        <div
+                                            style="width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--cr-border); overflow: hidden; background: var(--cr-sage-light); display: flex; align-items: center; justify-content: center; flex-shrink: 0"
+                                        >
+                                            <img
+                                                v-if="data.avatar"
+                                                :src="data.avatar"
+                                                alt="Avatar"
+                                                referrerpolicy="no-referrer"
+                                                style="width: 100%; height: 100%; object-fit: cover"
+                                            />
+                                            <i
+                                                v-else
+                                                class="pi pi-user"
+                                                style="font-size: 0.9rem; color: var(--cr-sage-dark)"
+                                            />
+                                        </div>
+                                        <strong>{{ data.hoLot }} {{ data.ten }}</strong>
                                     </div>
+                                </template>
+                            </Column>
+                            <Column header="Email">
+                                <template #body="{ data }">
+                                    {{ data.email || '—' }}
                                 </template>
                             </Column>
                             <Column header="Trạng thái hiện tại">
@@ -216,7 +341,6 @@ onMounted(() => {
                                 <template #body="{ data }">
                                     <Button
                                         label="Cấp mật khẩu mới"
-                                        icon="pi pi-key"
                                         severity="secondary"
                                         outlined
                                         size="small"
@@ -230,11 +354,57 @@ onMounted(() => {
                     </TabPanel>
 
                     <TabPanel value="staff">
+                        <div class="cr-toolbar">
+                            <div
+                                class="cr-items-center cr-flex-wrap"
+                                style="flex: 1"
+                            >
+                                <InputText
+                                    v-model="staffFilter.search"
+                                    placeholder="Tìm MSNV, họ tên nhân viên, SĐT..."
+                                    style="min-width: 260px; flex: 1; max-width: 400px"
+                                />
+                                <Select
+                                    v-model="staffFilter.chucVu"
+                                    :options="CHUC_VU_OPTIONS"
+                                    optionLabel="label"
+                                    optionValue="value"
+                                    placeholder="Chức vụ"
+                                    showClear
+                                />
+                                <Select
+                                    v-model="staffFilter.accessStatus"
+                                    :options="staffAccessOptions"
+                                    optionLabel="label"
+                                    optionValue="value"
+                                    placeholder="Quyền truy cập"
+                                    showClear
+                                />
+                                <Button
+                                    v-if="
+                                        staffFilter.search ||
+                                        staffFilter.chucVu ||
+                                        staffFilter.accessStatus
+                                    "
+                                    label="Đặt lại"
+                                    icon="pi pi-filter-slash"
+                                    severity="secondary"
+                                    outlined
+                                    @click="
+                                        staffFilter.search = '';
+                                        staffFilter.chucVu = null;
+                                        staffFilter.accessStatus = null;
+                                    "
+                                />
+                            </div>
+                        </div>
+
                         <DataTable
-                            :value="staffList"
+                            :value="filteredStaff"
                             :loading="loading"
                             paginator
                             :rows="10"
+                            emptyMessage="Không tìm thấy tài khoản nhân viên nào."
                         >
                             <Column field="msnv" header="MSNV" />
                             <Column field="hoTenNv" header="Họ tên nhân viên" />
@@ -275,7 +445,6 @@ onMounted(() => {
                                         />
                                         <Button
                                             label="Cấp mật khẩu mới"
-                                            icon="pi pi-key"
                                             severity="secondary"
                                             outlined
                                             size="small"
@@ -298,7 +467,7 @@ onMounted(() => {
 
     <Dialog
         v-model:visible="passDialogVisible"
-        header="Cấp lại Mật khẩu Tài khoản"
+        header="Cấp lại mật khẩu tài khoản"
         modal
         :style="{ width: '420px' }"
     >
@@ -330,8 +499,7 @@ onMounted(() => {
                     @click="passDialogVisible = false"
                 />
                 <Button
-                    label="Lưu Mật khẩu"
-                    icon="pi pi-save"
+                    label="Lưu mật khẩu"
                     :loading="savingPass"
                     @click="handleResetPassword"
                 />

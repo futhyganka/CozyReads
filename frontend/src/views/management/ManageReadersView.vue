@@ -32,6 +32,8 @@ import {
     getLoaiDocGiaLabel,
     getHanMucMuonTheoDiem,
 } from '@/utils/formatters';
+import { readImageFileAsDataUrl } from '@/utils/imageUpload';
+import AvatarCropperDialog from '@/components/common/AvatarCropperDialog.vue';
 
 const toast = useToast();
 const confirm = useConfirm();
@@ -73,7 +75,50 @@ const form = reactive({
     ngaySinh: null,
     phai: 'khac',
     diaChi: '',
+    avatar: '',
 });
+
+const readerAvatarInput = ref(null);
+const selectedReaderAvatarName = ref('');
+const readerCropperVisible = ref(false);
+const rawReaderAvatarForCrop = ref('');
+
+async function handleReaderAvatarChange(event) {
+    const file = event.target?.files?.[0];
+    if (!file) return;
+    formError.value = '';
+    try {
+        const dataUrl = await readImageFileAsDataUrl(file, {
+            maxWidth: 1200,
+            maxHeight: 1200,
+            quality: 0.92,
+        });
+        selectedReaderAvatarName.value = file.name;
+        rawReaderAvatarForCrop.value = dataUrl;
+        readerCropperVisible.value = true;
+    } catch (err) {
+        formError.value = err.message;
+    } finally {
+        if (event.target) event.target.value = '';
+    }
+}
+
+function handleConfirmReaderAvatarCrop(croppedDataUrl) {
+    form.avatar = croppedDataUrl;
+}
+
+function openRecropReaderAvatar() {
+    if (!form.avatar) return;
+    rawReaderAvatarForCrop.value = form.avatar;
+    readerCropperVisible.value = true;
+}
+
+function clearReaderAvatar() {
+    form.avatar = '';
+    rawReaderAvatarForCrop.value = '';
+    selectedReaderAvatarName.value = '';
+    if (readerAvatarInput.value) readerAvatarInput.value.value = '';
+}
 
 // Dialog Đổi trạng thái thẻ & Điều chỉnh điểm
 const statusDialogVisible = ref(false);
@@ -120,6 +165,14 @@ function onPage(event) {
     fetchReaders();
 }
 
+function handleResetFilters() {
+    query.search = '';
+    query.loaiDocGia = null;
+    query.trangThai = null;
+    query.page = 1;
+    fetchReaders();
+}
+
 function openCreateDialog() {
     isEditing.value = false;
     editingId.value = null;
@@ -138,6 +191,8 @@ function openCreateDialog() {
     form.ngaySinh = null;
     form.phai = 'khac';
     form.diaChi = '';
+    form.avatar = '';
+    selectedReaderAvatarName.value = '';
     formDialogVisible.value = true;
 }
 
@@ -152,6 +207,8 @@ function openEditDialog(reader) {
     form.ngaySinh = reader.ngaySinh ? new Date(reader.ngaySinh) : null;
     form.phai = reader.phai || 'khac';
     form.diaChi = reader.diaChi || '';
+    form.avatar = reader.avatar || '';
+    selectedReaderAvatarName.value = '';
     formDialogVisible.value = true;
 }
 
@@ -230,6 +287,7 @@ async function handleSaveReader() {
                 ngaySinh: form.ngaySinh || null,
                 phai: form.phai,
                 diaChi: form.diaChi.trim(),
+                avatar: form.avatar || '',
             });
             toast.add({
                 severity: 'success',
@@ -257,6 +315,7 @@ async function handleSaveReader() {
                 ngaySinh: form.ngaySinh || null,
                 phai: form.phai,
                 diaChi: form.diaChi.trim(),
+                avatar: form.avatar || '',
             };
             if (form.password) payload.password = form.password;
             if (form.email.trim() && registrationToken.value) {
@@ -396,7 +455,7 @@ async function openReaderHistory(reader) {
 
 function handleDeleteReader(reader) {
     confirm.require({
-        header: 'Xác nhận Xóa / Hủy Độc giả',
+        header: 'Xác nhận xóa / hủy độc giả',
         message: `Xóa hoặc hủy hồ sơ độc giả "${reader.hoLot} ${reader.ten}" (${reader.maDocGia})? Nếu độc giả đã có lịch sử giao dịch, hệ thống sẽ chuyển sang trạng thái Đã hủy.`,
         icon: 'pi pi-exclamation-triangle',
         acceptLabel: 'Xác nhận',
@@ -432,10 +491,9 @@ onMounted(() => {
     <Card>
         <template #title>
             <div class="cr-flex-between cr-flex-wrap">
-                <span>Quản lý Hồ sơ & Thẻ Độc giả</span>
+                <span>Quản lý hồ sơ & thẻ độc giả</span>
                 <Button
-                    label="Tạo Độc giả tại Quầy"
-                    icon="pi pi-user-plus"
+                    label="Tạo độc giả tại quầy"
                     @click="openCreateDialog"
                 />
             </div>
@@ -485,6 +543,14 @@ onMounted(() => {
                             fetchReaders();
                         "
                     />
+                    <Button
+                        v-if="query.search || query.loaiDocGia || query.trangThai"
+                        label="Đặt lại"
+                        icon="pi pi-filter-slash"
+                        severity="secondary"
+                        outlined
+                        @click="handleResetFilters"
+                    />
                 </div>
             </div>
 
@@ -500,12 +566,26 @@ onMounted(() => {
                 @page="onPage"
             >
                 <Column field="maDocGia" header="Mã ĐG" />
-                <Column header="Họ tên & Liên hệ">
+                <Column header="Họ và tên">
                     <template #body="{ data }">
-                        <strong>{{ data.hoLot }} {{ data.ten }}</strong>
-                        <div class="cr-muted">
-                            {{ data.dienThoai }}
-                            {{ data.email ? ` • ${data.email}` : '' }}
+                        <div class="cr-items-center" style="gap: 0.65rem">
+                            <div
+                                style="width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--cr-border); overflow: hidden; background: var(--cr-sage-light); display: flex; align-items: center; justify-content: center; flex-shrink: 0"
+                            >
+                                <img
+                                    v-if="data.avatar"
+                                    :src="data.avatar"
+                                    alt="Avatar"
+                                    referrerpolicy="no-referrer"
+                                    style="width: 100%; height: 100%; object-fit: cover"
+                                />
+                                <i
+                                    v-else
+                                    class="pi pi-user"
+                                    style="font-size: 0.9rem; color: var(--cr-sage-dark)"
+                                ></i>
+                            </div>
+                            <strong>{{ data.hoLot }} {{ data.ten }}</strong>
                         </div>
                     </template>
                 </Column>
@@ -517,14 +597,9 @@ onMounted(() => {
                 <Column header="Điểm uy tín">
                     <template #body="{ data }">
                         <Tag
-                            :value="`${data.diemDocGia}đ (Tối đa ${getHanMucMuonTheoDiem(data.diemDocGia)} cuốn)`"
+                            :value="`${data.diemDocGia} điểm`"
                             :severity="data.diemDocGia > 40 ? 'success' : 'warn'"
                         />
-                    </template>
-                </Column>
-                <Column header="Hạn thẻ">
-                    <template #body="{ data }">
-                        {{ formatDate(data.ngayHetHanThe) }}
                     </template>
                 </Column>
                 <Column header="Trạng thái">
@@ -580,8 +655,8 @@ onMounted(() => {
         v-model:visible="formDialogVisible"
         :header="
             isEditing
-                ? 'Cập nhật Thông tin Độc giả'
-                : 'Tạo Hồ sơ Độc giả tại Quầy'
+                ? 'Cập nhật thông tin độc giả'
+                : 'Tạo hồ sơ độc giả tại quầy'
         "
         modal
         :style="{ width: '620px' }"
@@ -652,7 +727,7 @@ onMounted(() => {
                         />
                     </div>
                     <div class="cr-field">
-                        <label class="cr-label">Mật khẩu đăng nhập (Tùy chọn)</label>
+                        <label class="cr-label">Mật khẩu đăng nhập (tùy chọn)</label>
                         <Password
                             v-model="form.password"
                             :feedback="false"
@@ -663,7 +738,7 @@ onMounted(() => {
 
                     <div class="cr-field cr-field-full">
                         <label class="cr-label">
-                            Email (Tùy chọn — Nếu nhập email bắt buộc xác thực OTP)
+                            Email (tùy chọn — nếu nhập email bắt buộc xác thực OTP)
                         </label>
                         <div class="cr-flex cr-gap-xs">
                             <InputText
@@ -677,7 +752,6 @@ onMounted(() => {
                                 v-if="form.email && !registrationToken"
                                 type="button"
                                 label="Gửi OTP"
-                                icon="pi pi-send"
                                 severity="secondary"
                                 outlined
                                 :loading="otpLoading"
@@ -697,7 +771,6 @@ onMounted(() => {
                             <Button
                                 type="button"
                                 label="Xác thực OTP"
-                                icon="pi pi-check"
                                 :loading="otpLoading"
                                 @click="handleVerifyCounterOtp"
                             />
@@ -709,6 +782,75 @@ onMounted(() => {
                         />
                     </div>
                 </template>
+
+                <div class="cr-field cr-field-full">
+                    <label class="cr-label">Ảnh đại diện (tùy chọn)</label>
+                    <input
+                        ref="readerAvatarInput"
+                        type="file"
+                        accept="image/*"
+                        style="display: none"
+                        @change="handleReaderAvatarChange"
+                    />
+                    <div class="cr-items-center cr-flex-wrap" style="gap: 1rem">
+                        <div
+                            style="width: 60px; height: 60px; border-radius: 50%; border: 1px solid var(--cr-border); overflow: hidden; background: var(--cr-sage-light); display: flex; align-items: center; justify-content: center; flex-shrink: 0"
+                        >
+                            <img
+                                v-if="form.avatar"
+                                :src="form.avatar"
+                                alt="Ảnh đại diện độc giả"
+                                referrerpolicy="no-referrer"
+                                style="width: 100%; height: 100%; object-fit: cover"
+                            />
+                            <i
+                                v-else
+                                class="pi pi-user"
+                                style="font-size: 1.4rem; color: var(--cr-sage-dark)"
+                            ></i>
+                        </div>
+                        <div class="cr-flex-col cr-gap-xs">
+                            <div class="cr-items-center cr-flex-wrap">
+                                <Button
+                                    type="button"
+                                    :label="form.avatar ? 'Đổi ảnh đại diện' : 'Chọn tệp ảnh từ máy'"
+                                    icon="pi pi-upload"
+                                    severity="secondary"
+                                    outlined
+                                    size="small"
+                                    @click="readerAvatarInput?.click()"
+                                />
+                                <Button
+                                    v-if="form.avatar"
+                                    type="button"
+                                    label="Cắt / Căn chỉnh lại"
+                                    icon="pi pi-sliders-h"
+                                    severity="secondary"
+                                    text
+                                    size="small"
+                                    @click="openRecropReaderAvatar"
+                                />
+                                <Button
+                                    v-if="form.avatar"
+                                    type="button"
+                                    label="Xóa ảnh"
+                                    icon="pi pi-times"
+                                    severity="danger"
+                                    text
+                                    size="small"
+                                    @click="clearReaderAvatar"
+                                />
+                            </div>
+                            <span class="cr-muted">
+                                {{
+                                    selectedReaderAvatarName
+                                        ? `Đã chọn: ${selectedReaderAvatarName}`
+                                        : 'Hỗ trợ tệp JPG, PNG, WEBP, GIF, SVG (tối đa 5MB).'
+                                }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
 
                 <div class="cr-field cr-field-full">
                     <label class="cr-label">Địa chỉ</label>
@@ -726,8 +868,7 @@ onMounted(() => {
                 />
                 <Button
                     type="submit"
-                    label="Lưu Hồ sơ"
-                    icon="pi pi-save"
+                    label="Lưu hồ sơ"
                     :loading="saving"
                 />
             </div>
@@ -737,13 +878,13 @@ onMounted(() => {
     <!-- Dialog Quản lý Thẻ, Điểm & Gia hạn -->
     <Dialog
         v-model:visible="statusDialogVisible"
-        :header="`Quản lý Thẻ Độc giả: ${selectedReader?.maDocGia || ''}`"
+        :header="`Quản lý thẻ độc giả: ${selectedReader?.maDocGia || ''}`"
         modal
         :style="{ width: '500px' }"
     >
         <div v-if="selectedReader" class="cr-flex-col cr-gap-lg">
             <div class="cr-flex-col cr-gap-sm">
-                <label class="cr-label">1. Cập nhật Trạng thái Thẻ</label>
+                <label class="cr-label">1. Cập nhật trạng thái thẻ</label>
                 <div class="cr-flex cr-gap-sm">
                     <Select
                         v-model="newTrangThai"
@@ -754,7 +895,6 @@ onMounted(() => {
                     />
                     <Button
                         label="Cập nhật"
-                        icon="pi pi-check"
                         :loading="saving"
                         @click="handleUpdateCardStatus"
                     />
@@ -762,7 +902,7 @@ onMounted(() => {
             </div>
 
             <div class="cr-flex-col cr-gap-sm">
-                <label class="cr-label">2. Điều chỉnh Điểm Uy tín (0 - 100)</label>
+                <label class="cr-label">2. Điều chỉnh điểm uy tín (0 - 100)</label>
                 <div class="cr-flex cr-gap-sm">
                     <InputNumber
                         v-model="newDiem"
@@ -772,7 +912,6 @@ onMounted(() => {
                     />
                     <Button
                         label="Lưu điểm"
-                        icon="pi pi-star"
                         :loading="saving"
                         @click="handleUpdatePoints"
                     />
@@ -783,7 +922,7 @@ onMounted(() => {
                 v-if="selectedReader.loaiDocGia === 'docGia_tuDo'"
                 class="cr-flex-col cr-gap-sm"
             >
-                <label class="cr-label">3. Tạo Khoản Thanh toán Gia hạn Thẻ</label>
+                <label class="cr-label">3. Tạo khoản thanh toán gia hạn thẻ</label>
                 <Select
                     v-model="newGoiGiaHan"
                     :options="GOI_GIA_HAN_OPTIONS"
@@ -800,7 +939,6 @@ onMounted(() => {
                 />
                 <Button
                     label="Tạo khoản phí gia hạn"
-                    icon="pi pi-calendar-plus"
                     severity="secondary"
                     outlined
                     :loading="saving"
@@ -813,7 +951,7 @@ onMounted(() => {
     <!-- Dialog Xem lịch sử mượn của Độc giả -->
     <Dialog
         v-model:visible="historyDialogVisible"
-        :header="`Lịch sử Mượn trả: ${selectedReader?.hoLot || ''} ${selectedReader?.ten || ''} (${selectedReader?.maDocGia || ''})`"
+        :header="`Lịch sử mượn trả: ${selectedReader?.hoLot || ''} ${selectedReader?.ten || ''} (${selectedReader?.maDocGia || ''})`"
         modal
         :style="{ width: '760px' }"
     >
@@ -847,4 +985,10 @@ onMounted(() => {
             </Column>
         </DataTable>
     </Dialog>
+
+    <AvatarCropperDialog
+        v-model:visible="readerCropperVisible"
+        :imageSrc="rawReaderAvatarForCrop"
+        @confirm="handleConfirmReaderAvatarCrop"
+    />
 </template>

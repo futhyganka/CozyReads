@@ -34,6 +34,9 @@ const config = {
         maxAttempts: 5,
         registrationTokenExpiryMinutes: 15,
     },
+    gemini: {
+        apiKey: process.env.GEMINI_API_KEY || '',
+    },
 };
 
 module.exports = config;

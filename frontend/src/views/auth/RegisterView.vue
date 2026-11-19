@@ -276,7 +276,7 @@ async function handleCompleteRegistration() {
 <template>
     <Card>
         <template #title>
-            <div style="text-align: center">Đăng ký Thẻ Độc giả CozyReads</div>
+            <div style="text-align: center">Đăng ký thẻ độc giả CozyReads</div>
         </template>
         <template #subtitle>
             <div style="text-align: center">
@@ -408,7 +408,7 @@ async function handleCompleteRegistration() {
                                 <div class="cr-grid-2 cr-gap-sm">
                                     <Button
                                         type="button"
-                                        label="Đổi Email"
+                                        label="Đổi email"
                                         icon="pi pi-arrow-left"
                                         severity="secondary"
                                         outlined
@@ -591,7 +591,7 @@ async function handleCompleteRegistration() {
 
                             <Button
                                 type="submit"
-                                label="Hoàn tất Đăng ký Độc giả"
+                                label="Hoàn tất đăng ký độc giả"
                                 icon="pi pi-user-plus"
                                 :loading="loading"
                                 fluid

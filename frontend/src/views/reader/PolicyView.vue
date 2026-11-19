@@ -11,7 +11,7 @@ import { formatCurrency } from '@/utils/formatters';
     <div class="cr-container cr-page">
         <div class="cr-page-header">
             <div>
-                <h1 class="cr-page-title">Chính sách & Quy định Thư viện</h1>
+                <h1 class="cr-page-title">Chính sách & quy định thư viện</h1>
                 <p class="cr-page-subtitle">
                     Các quy tắc nghiệp vụ chính thức đang áp dụng trên hệ thống CozyReads
                 </p>
@@ -20,10 +20,10 @@ import { formatCurrency } from '@/utils/formatters';
 
         <div class="cr-grid-2 cr-section">
             <Card>
-                <template #title>1. Thang điểm Uy tín & Hạn mức mượn</template>
+                <template #title>1. Thang điểm uy tín & hạn mức mượn</template>
                 <template #content>
                     <p class="cr-muted" style="margin-bottom: 1rem">
-                        Mỗi độc giả khi mở thẻ có <strong>100 điểm</strong> (tối소 0, tối đa 100). Cứ mỗi <strong>3 ngày không vi phạm</strong> được cộng <strong>+1 điểm</strong>.
+                        Mỗi độc giả khi mở thẻ có <strong>100 điểm</strong> (tối thiểu 0, tối đa 100). Cứ mỗi <strong>3 ngày không vi phạm</strong> được cộng <strong>+1 điểm</strong>.
                     </p>
                     <DataTable :value="THANG_DIEM_MUON_SACH" size="small">
                         <Column header="Mức điểm">
@@ -45,7 +45,7 @@ import { formatCurrency } from '@/utils/formatters';
             </Card>
 
             <Card>
-                <template #title>2. Quy định Mượn, Trả, Quá hạn & Mất sách</template>
+                <template #title>2. Quy định mượn, trả, quá hạn & mất sách</template>
                 <template #content>
                     <div class="cr-flex-col cr-gap-sm cr-muted">
                         <div>
@@ -66,10 +66,10 @@ import { formatCurrency } from '@/utils/formatters';
         </div>
 
         <Card>
-            <template #title>3. Chính sách Thẻ Độc giả & Gia hạn</template>
+            <template #title>3. Chính sách thẻ độc giả & gia hạn</template>
             <template #content>
                 <p class="cr-muted" style="margin-bottom: 1rem">
-                    Sinh viên, Giảng viên và Nhân viên được gia hạn tự động <strong>Gói 6 tháng miễn phí (180 ngày)</strong> (trừ sinh viên đã tốt nghiệp). Độc giả tự do áp dụng bảng phí gia hạn sau (thời gian ân hạn thanh toán là <strong>7 ngày</strong> trước khi tạm khóa thẻ):
+                    Sinh viên, giảng viên và nhân viên được gia hạn tự động <strong>gói 6 tháng miễn phí (180 ngày)</strong> (trừ sinh viên đã tốt nghiệp). Độc giả tự do áp dụng bảng phí gia hạn sau (thời gian ân hạn thanh toán là <strong>7 ngày</strong> trước khi tạm khóa thẻ):
                 </p>
                 <DataTable :value="GOI_GIA_HAN_OPTIONS" size="small">
                     <Column field="label" header="Tên gói gia hạn" />

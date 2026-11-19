@@ -88,7 +88,7 @@ onMounted(() => {
     <div class="cr-container cr-page">
         <div class="cr-page-header">
             <div>
-                <h1 class="cr-page-title">Liên hệ Thư viện CozyReads</h1>
+                <h1 class="cr-page-title">Liên hệ thư viện CozyReads</h1>
                 <p class="cr-page-subtitle">
                     Thông tin quầy phục vụ độc giả và gửi yêu cầu hỗ trợ trực tuyến
                 </p>
@@ -98,7 +98,7 @@ onMounted(() => {
         <div class="cr-grid-2 cr-section">
             <div class="cr-flex-col cr-gap-md">
                 <Card>
-                    <template #title>Thông tin Quầy Thư viện</template>
+                    <template #title>Thông tin quầy thư viện</template>
                     <template #content>
                         <div class="cr-flex-col cr-gap-sm">
                             <div>
@@ -125,7 +125,7 @@ onMounted(() => {
                                 <span class="cr-muted">Thời gian làm việc tại quầy:</span>
                                 <div>
                                     <strong>
-                                        Thứ 2 - Thứ 7 (07:30 - 11:30 & 13:30 - 17:30)
+                                        Thứ 2 - Thứ 7 (07:30 -  20:30)
                                     </strong>
                                 </div>
                             </div>
@@ -138,10 +138,10 @@ onMounted(() => {
                     <template #content>
                         <div class="cr-flex-col cr-gap-sm cr-muted">
                             <p>
-                                • <strong>Xác nhận nhận sách giữ online:</strong> Vui lòng cung cấp Mã độc giả (VD: DGA0000000) tại quầy trong vòng 24 giờ sau khi đặt giữ.
+                                • <strong>Xác nhận nhận sách giữ online:</strong> Vui lòng đến quầy nhận sách trong vòng 24 giờ sau khi đặt giữ.
                             </p>
                             <p>
-                                • <strong>Thanh toán phí gia hạn / bồi thường sách mất:</strong> Độc giả có thể tạo yêu cầu thanh toán trên cổng tài khoản và hoàn tất xác nhận tại quầy thủ thư.
+                                • <strong>Thanh toán phí gia hạn / bồi thường sách mất:</strong> Độc giả có thể tạo yêu cầu thanh toán trên hệ thống thư viện hoặc đến quầy thủ thư thanh toán trực tiếp.
                             </p>
                             <p>
                                 • <strong>Phản hồi yêu cầu liên hệ:</strong> Thư viện sẽ gửi câu trả lời trực tiếp vào địa chỉ Email gắn với hồ sơ thẻ độc giả của bạn.
@@ -152,18 +152,18 @@ onMounted(() => {
             </div>
 
             <Card>
-                <template #title>Gửi yêu cầu Liên hệ trực tuyến</template>
+                <template #title>Gửi yêu cầu liên hệ trực tuyến</template>
                 <template #content>
                     <div
                         v-if="!authStore.isReader"
                         class="cr-flex-col cr-gap-md"
                     >
                         <Message severity="info" :closable="false">
-                            Vui lòng đăng nhập tài khoản <strong>Độc giả</strong> để gửi yêu cầu liên hệ. Hệ thống sẽ tự động lấy thông tin từ hồ sơ thẻ độc giả và gửi phản hồi về địa chỉ Email của bạn.
+                            Vui lòng đăng nhập tài khoản để gửi yêu cầu liên hệ. Nhân viên sẽ sớm phản hồi về địa chỉ Email của bạn.
                         </Message>
                         <div>
                             <Button
-                                label="Đăng nhập Độc giả"
+                                label="Đăng nhập độc giả"
                                 icon="pi pi-sign-in"
                                 @click="
                                     router.push({
@@ -240,7 +240,7 @@ onMounted(() => {
 
                         <Button
                             type="submit"
-                            label="Gửi yêu cầu Liên hệ"
+                            label="Gửi yêu cầu liên hệ"
                             icon="pi pi-send"
                             :loading="submitting"
                             fluid
@@ -252,7 +252,7 @@ onMounted(() => {
 
         <!-- Lịch sử liên hệ của độc giả -->
         <Card v-if="authStore.isReader" class="cr-section">
-            <template #title>Lịch sử Liên hệ của tôi</template>
+            <template #title>Lịch sử liên hệ của tôi</template>
             <template #content>
                 <DataTable
                     :value="myContacts"
@@ -284,7 +284,7 @@ onMounted(() => {
                             <StatusTag type="phanHoi" :value="data.trangThai" />
                         </template>
                     </Column>
-                    <Column header="Phản hồi từ Thư viện">
+                    <Column header="Phản hồi từ thư viện">
                         <template #body="{ data }">
                             <div
                                 v-if="data.noiDungPhanHoi"

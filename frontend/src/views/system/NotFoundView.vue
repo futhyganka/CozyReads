@@ -17,7 +17,7 @@ const router = useRouter();
                     </h1>
                     <p>Đường dẫn bạn truy cập không tồn tại trong hệ thống CozyReads.</p>
                     <Button
-                        label="Quay về Trang chủ"
+                        label="Quay về trang chủ"
                         icon="pi pi-home"
                         @click="router.push('/')"
                     />

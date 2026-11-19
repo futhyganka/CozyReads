@@ -103,7 +103,7 @@ async function handleChangePassword() {
 
 <template>
     <Card>
-        <template #title>Bảo mật Tài khoản & Đổi Mật khẩu</template>
+        <template #title>Bảo mật tài khoản & đổi mật khẩu</template>
         <template #subtitle>
             Thay đổi mật khẩu định kỳ để bảo vệ tài khoản độc giả của bạn
         </template>
@@ -169,7 +169,7 @@ async function handleChangePassword() {
                 <div>
                     <Button
                         type="submit"
-                        label="Cập nhật Mật khẩu"
+                        label="Cập nhật mật khẩu"
                         icon="pi pi-lock"
                         :loading="loading"
                     />

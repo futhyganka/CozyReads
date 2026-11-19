@@ -120,7 +120,7 @@ onMounted(async () => {
 <template>
     <div class="cr-grid-2">
         <Card>
-            <template #title>Hồ sơ Nhân viên</template>
+            <template #title>Hồ sơ nhân viên</template>
             <template #subtitle>
                 Mã số nhân viên: <strong>{{ authStore.userProfile?.msnv }}</strong>
             </template>
@@ -170,8 +170,7 @@ onMounted(async () => {
                     <div>
                         <Button
                             type="submit"
-                            label="Lưu Thông tin Cá nhân"
-                            icon="pi pi-save"
+                            label="Lưu thông tin cá nhân"
                             :loading="savingProfile"
                         />
                     </div>
@@ -180,9 +179,9 @@ onMounted(async () => {
         </Card>
 
         <Card>
-            <template #title>Đổi Mật khẩu Nhân viên</template>
+            <template #title>Đổi mật khẩu nhân viên</template>
             <template #subtitle>
-                Bảo mật tài khoản làm việc tại Cổng Quản lý
+                Bảo mật tài khoản làm việc tại cổng quản lý
             </template>
             <template #content>
                 <Message
@@ -228,8 +227,7 @@ onMounted(async () => {
                     <div>
                         <Button
                             type="submit"
-                            label="Đổi Mật khẩu"
-                            icon="pi pi-lock"
+                            label="Đổi mật khẩu"
                             :loading="savingPass"
                         />
                     </div>

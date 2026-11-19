@@ -232,80 +232,11 @@ onMounted(() => {
             </div>
             <Button
                 label="Làm mới"
-                icon="pi pi-refresh"
                 severity="secondary"
                 outlined
                 :loading="loading"
                 @click="fetchContacts"
             />
-        </div>
-
-        <!-- Thẻ thống kê -->
-        <div class="cr-grid-stats cr-section">
-            <Card>
-                <template #content>
-                    <div class="cr-flex-between">
-                        <div>
-                            <div class="cr-muted">Tổng số liên hệ</div>
-                            <div style="font-size: 1.75rem; font-weight: 800">
-                                {{ stats.tongSo }}
-                            </div>
-                        </div>
-                        <i
-                            class="pi pi-envelope"
-                            style="font-size: 2rem; color: var(--cr-primary)"
-                        ></i>
-                    </div>
-                </template>
-            </Card>
-            <Card>
-                <template #content>
-                    <div class="cr-flex-between">
-                        <div>
-                            <div class="cr-muted">Chờ xử lý</div>
-                            <div style="font-size: 1.75rem; font-weight: 800">
-                                {{ stats.choXuLy }}
-                            </div>
-                        </div>
-                        <i
-                            class="pi pi-clock"
-                            style="font-size: 2rem; color: #d97706"
-                        ></i>
-                    </div>
-                </template>
-            </Card>
-            <Card>
-                <template #content>
-                    <div class="cr-flex-between">
-                        <div>
-                            <div class="cr-muted">Đang xử lý</div>
-                            <div style="font-size: 1.75rem; font-weight: 800">
-                                {{ stats.dangXuLy }}
-                            </div>
-                        </div>
-                        <i
-                            class="pi pi-spin pi-cog"
-                            style="font-size: 2rem; color: #2563eb"
-                        ></i>
-                    </div>
-                </template>
-            </Card>
-            <Card>
-                <template #content>
-                    <div class="cr-flex-between">
-                        <div>
-                            <div class="cr-muted">Đã xử lý</div>
-                            <div style="font-size: 1.75rem; font-weight: 800">
-                                {{ stats.daXuLy }}
-                            </div>
-                        </div>
-                        <i
-                            class="pi pi-check-circle"
-                            style="font-size: 2rem; color: var(--cr-sage-dark)"
-                        ></i>
-                    </div>
-                </template>
-            </Card>
         </div>
 
         <!-- Bộ lọc -->
@@ -388,20 +319,14 @@ onMounted(() => {
                         </template>
                     </Column>
 
-                    <Column header="Họ tên độc giả">
+                    <Column header="Độc giả">
                         <template #body="{ data }">
                             <div>
                                 <strong>{{ getReaderFullName(data.maDocGia) }}</strong>
                             </div>
                             <div v-if="data.maDocGia?.maDocGia" class="cr-muted">
-                                Mã ĐG: {{ data.maDocGia.maDocGia }}
+                                {{ data.maDocGia.maDocGia }}
                             </div>
-                        </template>
-                    </Column>
-
-                    <Column header="Email độc giả">
-                        <template #body="{ data }">
-                            {{ data.maDocGia?.email || '—' }}
                         </template>
                     </Column>
 
@@ -425,25 +350,12 @@ onMounted(() => {
                         </template>
                     </Column>
 
-                    <Column header="Nhân viên phụ trách">
-                        <template #body="{ data }">
-                            <template v-if="data.msnvXuLy">
-                                <div>
-                                    <strong>{{ data.msnvXuLy.hoTenNv }}</strong>
-                                </div>
-                                <div class="cr-muted">{{ data.msnvXuLy.msnv }}</div>
-                            </template>
-                            <span v-else class="cr-muted">Chưa phân công</span>
-                        </template>
-                    </Column>
-
                     <Column header="Thao tác">
                         <template #body="{ data }">
                             <div class="cr-items-center cr-flex-wrap">
                                 <Button
                                     v-if="data.trangThai === TRANG_THAI_PHAN_HOI.CHO_XU_LY"
                                     label="Tiếp nhận"
-                                    icon="pi pi-inbox"
                                     size="small"
                                     severity="secondary"
                                     outlined
@@ -453,13 +365,8 @@ onMounted(() => {
                                 <Button
                                     :label="
                                         data.trangThai === TRANG_THAI_PHAN_HOI.DA_XU_LY
-                                            ? 'Xem chi tiết'
-                                            : 'Chi tiết & Phản hồi'
-                                    "
-                                    :icon="
-                                        data.trangThai === TRANG_THAI_PHAN_HOI.DA_XU_LY
-                                            ? 'pi pi-eye'
-                                            : 'pi pi-send'
+                                            ? 'Chi tiết'
+                                            : 'Chi tiết & phản hồi'
                                     "
                                     size="small"
                                     :severity="
@@ -492,7 +399,7 @@ onMounted(() => {
         <!-- Dialog Chi tiết & Phản hồi Liên hệ -->
         <Dialog
             v-model:visible="detailVisible"
-            header="Chi tiết Yêu cầu Liên hệ"
+            header="Chi tiết yêu cầu liên hệ"
             modal
             :style="{ width: '640px', maxWidth: '95vw' }"
         >
@@ -554,12 +461,12 @@ onMounted(() => {
                         </div>
                     </div>
                     <div>
-                        <span class="cr-muted">Nhân viên phụ trách:</span>
+                        <span class="cr-muted">Nhân viên xử lý:</span>
                         <div>
                             <strong v-if="selectedContact.msnvXuLy">
                                 {{ selectedContact.msnvXuLy.hoTenNv }} ({{ selectedContact.msnvXuLy.msnv }})
                             </strong>
-                            <span v-else class="cr-muted">Chưa phân công</span>
+                            <span v-else class="cr-muted">Chưa xử lý</span>
                         </div>
                     </div>
                 </div>
@@ -624,7 +531,6 @@ onMounted(() => {
                                 "
                                 type="button"
                                 label="Tiếp nhận xử lý"
-                                icon="pi pi-inbox"
                                 severity="secondary"
                                 outlined
                                 :loading="updatingStatusId === selectedContact._id"
@@ -642,7 +548,6 @@ onMounted(() => {
                             <Button
                                 type="button"
                                 label="Gửi phản hồi qua Email"
-                                icon="pi pi-send"
                                 :loading="sendingReply"
                                 @click="handleSendReply"
                             />

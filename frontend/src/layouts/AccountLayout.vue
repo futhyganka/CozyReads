@@ -48,7 +48,7 @@ const accountMenuItems = computed(() => [
         ],
     },
     {
-        label: 'Hoạt động Mượn & Phí',
+        label: 'Hoạt động mượn & phí',
         icon: 'pi pi-book',
         expanded: true,
         items: [
@@ -80,11 +80,29 @@ const accountMenuItems = computed(() => [
 <template>
     <div class="cr-container cr-page">
         <div class="cr-page-header">
-            <div>
-                <h1 class="cr-page-title">Không gian Độc giả</h1>
-                <p class="cr-page-subtitle">
-                    Xin chào <strong>{{ authStore.displayName }}</strong> ({{ authStore.userProfile?.maDocGia }})
-                </p>
+            <div class="cr-items-center" style="gap: 0.875rem">
+                <div
+                    style="width: 52px; height: 52px; border-radius: 50%; border: 2px solid var(--cr-border); overflow: hidden; background: var(--cr-sage-light); display: flex; align-items: center; justify-content: center; flex-shrink: 0"
+                >
+                    <img
+                        v-if="authStore.userProfile?.avatar"
+                        :src="authStore.userProfile.avatar"
+                        alt="Avatar"
+                        referrerpolicy="no-referrer"
+                        style="width: 100%; height: 100%; object-fit: cover"
+                    />
+                    <i
+                        v-else
+                        class="pi pi-user"
+                        style="font-size: 1.35rem; color: var(--cr-sage-dark)"
+                    ></i>
+                </div>
+                <div>
+                    <h1 class="cr-page-title">Trang độc giả</h1>
+                    <p class="cr-page-subtitle">
+                        {{ authStore.userProfile?.maDocGia }} - {{ authStore.displayName }}
+                    </p>
+                </div>
             </div>
             <div class="cr-items-center">
                 <Button

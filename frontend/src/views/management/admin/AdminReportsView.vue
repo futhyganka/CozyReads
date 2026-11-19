@@ -38,14 +38,14 @@ const financialStats = computed(() => {
 
     return [
         {
-            hangMuc: 'Thu phí gia hạn thẻ (Đã xác nhận)',
+            hangMuc: 'Thu phí gia hạn thẻ (đã xác nhận)',
             soGiaoDich: payments.value.filter(
                 (p) => p.loai === 'phi_giaHan' && p.trangThai === 'daThanhToan',
             ).length,
             tongTien: paidRenewal,
         },
         {
-            hangMuc: 'Thu tiền bồi thường mất/hỏng sách (Đã xác nhận)',
+            hangMuc: 'Thu tiền bồi thường mất/hỏng sách (đã xác nhận)',
             soGiaoDich: payments.value.filter(
                 (p) =>
                     p.loai === 'phiPhat_matSach' &&
@@ -120,7 +120,7 @@ onMounted(() => {
     <div class="cr-flex-col cr-gap-lg">
         <div class="cr-page-header" style="margin-bottom: 0">
             <div>
-                <h1 class="cr-page-title">Báo cáo & Thống kê Hệ thống</h1>
+                <h1 class="cr-page-title">Báo cáo & thống kê hệ thống</h1>
                 <p class="cr-page-subtitle">
                     Số liệu tổng hợp trực tiếp từ dữ liệu thực tế của Backend CozyReads
                 </p>
@@ -137,7 +137,7 @@ onMounted(() => {
         <Message v-if="errorMsg" severity="error">{{ errorMsg }}</Message>
 
         <Card>
-            <template #title>Tổng hợp Tài chính & Các khoản Phí</template>
+            <template #title>Tổng hợp tài chính & các khoản phí</template>
             <template #content>
                 <DataTable :value="financialStats" :loading="loading">
                     <Column field="hangMuc" header="Hạng mục thống kê" />
@@ -153,14 +153,14 @@ onMounted(() => {
 
         <div class="cr-grid-2">
             <Card>
-                <template #title>Phân bổ Đối tượng Độc giả</template>
+                <template #title>Phân bổ đối tượng độc giả</template>
                 <template #content>
                     <Chart type="bar" :data="readerTypeChart" />
                 </template>
             </Card>
 
             <Card>
-                <template #title>Chỉ số Tồn kho Sách</template>
+                <template #title>Chỉ số tồn kho sách</template>
                 <template #content>
                     <div class="cr-flex-col cr-gap-md">
                         <div class="cr-flex-between">

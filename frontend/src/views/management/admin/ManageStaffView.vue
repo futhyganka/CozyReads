@@ -30,9 +30,15 @@ const totalRecords = ref(0);
 const query = reactive({
     search: '',
     chucVu: null,
+    daNghiViec: null,
     page: 1,
     limit: 10,
 });
+
+const workStatusOptions = [
+    { label: 'Đang làm việc', value: 'false' },
+    { label: 'Đã nghỉ việc', value: 'true' },
+];
 
 const dialogVisible = ref(false);
 const isEditing = ref(false);
@@ -59,6 +65,9 @@ async function fetchStaff() {
         };
         if (query.search.trim()) params.search = query.search.trim();
         if (query.chucVu) params.chucVu = query.chucVu;
+        if (query.daNghiViec !== null && query.daNghiViec !== undefined) {
+            params.daNghiViec = query.daNghiViec;
+        }
 
         const res = await nhanVienService.getDanhSachNhanVien(params);
         staffList.value = res.data || [];
@@ -73,6 +82,14 @@ async function fetchStaff() {
     } finally {
         loading.value = false;
     }
+}
+
+function handleResetFilters() {
+    query.search = '';
+    query.chucVu = null;
+    query.daNghiViec = null;
+    query.page = 1;
+    fetchStaff();
 }
 
 function onPage(event) {
@@ -171,7 +188,7 @@ async function handleSaveStaff() {
 
 function handleDeleteStaff(nv) {
     confirm.require({
-        header: 'Xác nhận Xóa / Đánh dấu Nghỉ việc Nhân viên',
+        header: 'Xác nhận xóa / đánh dấu nghỉ việc nhân viên',
         message: `Xóa hoặc đánh dấu nghỉ việc nhân viên "${nv.hoTenNv}" (${nv.msnv})? Nếu nhân viên đã tham gia xử lý giao dịch, hệ thống sẽ chuyển sang trạng thái Đã nghỉ việc để bảo toàn lịch sử.`,
         icon: 'pi pi-exclamation-triangle',
         acceptLabel: 'Xác nhận',
@@ -207,10 +224,9 @@ onMounted(() => {
     <Card>
         <template #title>
             <div class="cr-flex-between cr-flex-wrap">
-                <span>Quản lý Nhân sự Thư viện (Admin)</span>
+                <span>Quản lý nhân sự thư viện (Admin)</span>
                 <Button
-                    label="Thêm Nhân viên mới"
-                    icon="pi pi-user-plus"
+                    label="Thêm nhân viên mới"
                     @click="openCreateDialog"
                 />
             </div>
@@ -220,7 +236,7 @@ onMounted(() => {
                 <div class="cr-items-center cr-flex-wrap">
                     <InputText
                         v-model="query.search"
-                        placeholder="Tìm MSNV, họ tên, SĐT..."
+                        placeholder="Tìm MSNV, họ tên, SĐT, địa chỉ..."
                         @keyup.enter="
                             query.page = 1;
                             fetchStaff();
@@ -238,6 +254,18 @@ onMounted(() => {
                             fetchStaff();
                         "
                     />
+                    <Select
+                        v-model="query.daNghiViec"
+                        :options="workStatusOptions"
+                        optionLabel="label"
+                        optionValue="value"
+                        placeholder="Trạng thái làm việc"
+                        showClear
+                        @change="
+                            query.page = 1;
+                            fetchStaff();
+                        "
+                    />
                     <Button
                         label="Tìm"
                         icon="pi pi-search"
@@ -247,6 +275,14 @@ onMounted(() => {
                             query.page = 1;
                             fetchStaff();
                         "
+                    />
+                    <Button
+                        v-if="query.search || query.chucVu || query.daNghiViec"
+                        label="Đặt lại"
+                        icon="pi pi-filter-slash"
+                        severity="secondary"
+                        outlined
+                        @click="handleResetFilters"
                     />
                 </div>
             </div>
@@ -265,18 +301,12 @@ onMounted(() => {
                 <Column header="Họ và tên">
                     <template #body="{ data }">
                         <strong>{{ data.hoTenNv }}</strong>
-                        <div class="cr-muted">{{ data.diaChi }}</div>
                     </template>
                 </Column>
                 <Column field="soDienThoai" header="Số điện thoại" />
                 <Column header="Chức vụ">
                     <template #body="{ data }">
                         <StatusTag type="chucVu" :value="data.chucVu" />
-                    </template>
-                </Column>
-                <Column header="Mức lương">
-                    <template #body="{ data }">
-                        {{ formatCurrency(data.luong) }}
                     </template>
                 </Column>
                 <Column header="Trạng thái làm việc">
@@ -315,7 +345,7 @@ onMounted(() => {
 
     <Dialog
         v-model:visible="dialogVisible"
-        :header="isEditing ? `Cập nhật Nhân viên: ${form.msnv}` : 'Thêm Nhân viên Mới'"
+        :header="isEditing ? `Cập nhật nhân viên: ${form.msnv}` : 'Thêm nhân viên mới'"
         modal
         :style="{ width: '540px' }"
     >
@@ -337,7 +367,7 @@ onMounted(() => {
                     />
                 </div>
                 <div class="cr-field">
-                    <label class="cr-label">Chức vụ & Phân quyền *</label>
+                    <label class="cr-label">Chức vụ & phân quyền *</label>
                     <Select
                         v-model="form.chucVu"
                         :options="CHUC_VU_OPTIONS"
@@ -374,7 +404,7 @@ onMounted(() => {
                             binary
                         />
                         <label for="chk-nghi-viec">
-                            Đánh dấu đã nghỉ việc (Thu hồi ngay lập tức quyền truy cập JWT)
+                            Đánh dấu đã nghỉ việc (thu hồi ngay lập tức quyền truy cập JWT)
                         </label>
                     </div>
                 </div>
@@ -390,8 +420,7 @@ onMounted(() => {
                 />
                 <Button
                     type="submit"
-                    label="Lưu Nhân viên"
-                    icon="pi pi-save"
+                    label="Lưu nhân viên"
                     :loading="saving"
                 />
             </div>

@@ -18,6 +18,7 @@ import danhMucService from '@/services/danhmuc.service';
 import tacGiaService from '@/services/tacgia.service';
 import nhaXuatBanService from '@/services/nhaxuatban.service';
 import { formatCurrency } from '@/utils/formatters';
+import { readImageFileAsDataUrl } from '@/utils/imageUpload';
 
 const toast = useToast();
 const confirm = useConfirm();
@@ -36,14 +37,45 @@ const query = reactive({
     danhMuc: null,
     tacGia: null,
     maNXB: null,
+    conHang: null,
     page: 1,
     limit: 10,
 });
+
+const stockOptions = [
+    { label: 'Còn sách trong kho', value: 'true' },
+    { label: 'Hết sách (0 quyển)', value: 'false' },
+];
 
 const dialogVisible = ref(false);
 const isEditing = ref(false);
 const editingId = ref(null);
 const formError = ref('');
+const bookImageInput = ref(null);
+const selectedFileName = ref('');
+
+async function handleBookImageChange(event) {
+    const file = event.target?.files?.[0];
+    if (!file) return;
+    formError.value = '';
+    try {
+        form.hinhAnh = await readImageFileAsDataUrl(file, {
+            maxWidth: 600,
+            maxHeight: 900,
+        });
+        selectedFileName.value = file.name;
+    } catch (err) {
+        formError.value = err.message;
+    } finally {
+        if (event.target) event.target.value = '';
+    }
+}
+
+function clearBookImage() {
+    form.hinhAnh = '';
+    selectedFileName.value = '';
+    if (bookImageInput.value) bookImageInput.value.value = '';
+}
 
 const form = reactive({
     maSach: '',
@@ -86,6 +118,9 @@ async function fetchBooks() {
         if (query.danhMuc) params.danhMuc = query.danhMuc;
         if (query.tacGia) params.tacGia = query.tacGia;
         if (query.maNXB) params.maNXB = query.maNXB;
+        if (query.conHang !== null && query.conHang !== undefined) {
+            params.conHang = query.conHang;
+        }
 
         const res = await sachService.getDanhSachSach(params);
         books.value = res.data || [];
@@ -100,6 +135,16 @@ async function fetchBooks() {
     } finally {
         loading.value = false;
     }
+}
+
+function handleResetFilters() {
+    query.search = '';
+    query.danhMuc = null;
+    query.tacGia = null;
+    query.maNXB = null;
+    query.conHang = null;
+    query.page = 1;
+    fetchBooks();
 }
 
 function onPage(event) {
@@ -124,6 +169,7 @@ function openCreateDialog() {
     form.nguonGoc = '';
     form.hinhAnh = '';
     form.moTa = '';
+    selectedFileName.value = '';
     dialogVisible.value = true;
 }
 
@@ -143,6 +189,7 @@ function openEditDialog(book) {
     form.nguonGoc = book.nguonGoc || '';
     form.hinhAnh = book.hinhAnh || '';
     form.moTa = book.moTa || '';
+    selectedFileName.value = '';
     dialogVisible.value = true;
 }
 
@@ -153,7 +200,7 @@ async function handleSaveBook() {
         return;
     }
     if (!form.tacGia || !form.danhMuc || !form.maNXB) {
-        formError.value = 'Vui lòng chọn đầy đủ Tác giả, Danh mục và Nhà xuất bản.';
+        formError.value = 'Vui lòng chọn đầy đủ tác giả, danh mục và nhà xuất bản.';
         return;
     }
 
@@ -204,10 +251,10 @@ async function handleSaveBook() {
 
 function handleDeleteBook(book) {
     confirm.require({
-        header: 'Xác nhận Xóa / Ngừng lưu hành Sách',
+        header: 'Xác nhận xóa / ngừng lưu hành sách',
         message: `Bạn có chắc chắn muốn xóa đầu sách "${book.tenSach}" (${book.maSach})? Nếu sách đã có lịch sử mượn trả, hệ thống sẽ chuyển tồn kho về 0 và gắn nhãn ngừng lưu hành.`,
         icon: 'pi pi-exclamation-triangle',
-        acceptLabel: 'Xác nhận Xóa',
+        acceptLabel: 'Xác nhận xóa',
         rejectLabel: 'Hủy',
         accept: async () => {
             try {
@@ -241,10 +288,9 @@ onMounted(() => {
     <Card>
         <template #title>
             <div class="cr-flex-between cr-flex-wrap">
-                <span>Quản lý Đầu sách Thư viện</span>
+                <span>Quản lý đầu sách thư viện</span>
                 <Button
-                    label="Thêm Đầu sách mới"
-                    icon="pi pi-plus"
+                    label="Thêm đầu sách mới"
                     @click="openCreateDialog"
                 />
             </div>
@@ -254,7 +300,7 @@ onMounted(() => {
                 <div class="cr-items-center cr-flex-wrap">
                     <InputText
                         v-model="query.search"
-                        placeholder="Tìm mã sách, tên sách..."
+                        placeholder="Tìm mã sách, tên sách, mô tả..."
                         @keyup.enter="
                             query.page = 1;
                             fetchBooks();
@@ -284,6 +330,30 @@ onMounted(() => {
                             fetchBooks();
                         "
                     />
+                    <Select
+                        v-model="query.maNXB"
+                        :options="publishers"
+                        optionLabel="tenNxb"
+                        optionValue="_id"
+                        placeholder="Nhà xuất bản"
+                        showClear
+                        @change="
+                            query.page = 1;
+                            fetchBooks();
+                        "
+                    />
+                    <Select
+                        v-model="query.conHang"
+                        :options="stockOptions"
+                        optionLabel="label"
+                        optionValue="value"
+                        placeholder="Tồn kho"
+                        showClear
+                        @change="
+                            query.page = 1;
+                            fetchBooks();
+                        "
+                    />
                     <Button
                         label="Tìm kiếm"
                         icon="pi pi-search"
@@ -293,6 +363,20 @@ onMounted(() => {
                             query.page = 1;
                             fetchBooks();
                         "
+                    />
+                    <Button
+                        v-if="
+                            query.search ||
+                            query.danhMuc ||
+                            query.tacGia ||
+                            query.maNXB ||
+                            query.conHang
+                        "
+                        label="Đặt lại"
+                        icon="pi pi-filter-slash"
+                        severity="secondary"
+                        outlined
+                        @click="handleResetFilters"
                     />
                 </div>
             </div>
@@ -312,19 +396,16 @@ onMounted(() => {
                 <Column header="Tên sách">
                     <template #body="{ data }">
                         <strong>{{ data.tenSach }}</strong>
-                        <div class="cr-muted">
-                            {{ data.tacGia?.tenTg }} • {{ data.maNXB?.tenNxb }} ({{ data.namXuatBan }})
-                        </div>
+                    </template>
+                </Column>
+                <Column header="Tác giả">
+                    <template #body="{ data }">
+                        {{ data.tacGia?.tenTg || '—' }}
                     </template>
                 </Column>
                 <Column header="Danh mục">
                     <template #body="{ data }">
                         <Tag :value="data.danhMuc?.tenDm || '—'" severity="secondary" />
-                    </template>
-                </Column>
-                <Column header="Đơn giá">
-                    <template #body="{ data }">
-                        {{ formatCurrency(data.donGia) }}
                     </template>
                 </Column>
                 <Column header="Tồn kho">
@@ -361,7 +442,7 @@ onMounted(() => {
 
     <Dialog
         v-model:visible="dialogVisible"
-        :header="isEditing ? 'Cập nhật Đầu sách' : 'Thêm Đầu sách mới'"
+        :header="isEditing ? 'Cập nhật đầu sách' : 'Thêm đầu sách mới'"
         modal
         :style="{ width: '680px' }"
     >
@@ -370,7 +451,7 @@ onMounted(() => {
 
             <div class="cr-form-grid">
                 <div class="cr-field">
-                    <label class="cr-label">Mã sách (Để trống sẽ tự sinh)</label>
+                    <label class="cr-label">Mã sách (để trống sẽ tự sinh)</label>
                     <InputText
                         v-model="form.maSach"
                         :disabled="isEditing"
@@ -445,8 +526,57 @@ onMounted(() => {
                 </div>
 
                 <div class="cr-field cr-field-full">
-                    <label class="cr-label">URL Hình ảnh bìa sách</label>
-                    <InputText v-model="form.hinhAnh" placeholder="https://..." fluid />
+                    <label class="cr-label">Hình ảnh bìa sách</label>
+                    <input
+                        ref="bookImageInput"
+                        type="file"
+                        accept="image/*"
+                        style="display: none"
+                        @change="handleBookImageChange"
+                    />
+                    <div class="cr-items-center cr-flex-wrap" style="gap: 1rem">
+                        <div
+                            v-if="form.hinhAnh"
+                            style="width: 76px; height: 108px; border: 1px solid var(--cr-border); border-radius: 6px; overflow: hidden; background: var(--cr-sage-light); display: flex; align-items: center; justify-content: center; flex-shrink: 0"
+                        >
+                            <img
+                                :src="form.hinhAnh"
+                                alt="Xem trước bìa sách"
+                                referrerpolicy="no-referrer"
+                                style="width: 100%; height: 100%; object-fit: contain"
+                            />
+                        </div>
+                        <div class="cr-flex-col cr-gap-xs">
+                            <div class="cr-items-center cr-flex-wrap">
+                                <Button
+                                    type="button"
+                                    :label="form.hinhAnh ? 'Đổi ảnh bìa khác' : 'Chọn tệp ảnh bìa từ máy'"
+                                    icon="pi pi-upload"
+                                    severity="secondary"
+                                    outlined
+                                    size="small"
+                                    @click="bookImageInput?.click()"
+                                />
+                                <Button
+                                    v-if="form.hinhAnh"
+                                    type="button"
+                                    label="Xóa ảnh"
+                                    icon="pi pi-times"
+                                    severity="danger"
+                                    text
+                                    size="small"
+                                    @click="clearBookImage"
+                                />
+                            </div>
+                            <span class="cr-muted">
+                                {{
+                                    selectedFileName
+                                        ? `Đã chọn: ${selectedFileName}`
+                                        : 'Hỗ trợ tệp JPG, PNG, WEBP, GIF, SVG (tối đa 5MB).'
+                                }}
+                            </span>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="cr-field cr-field-full">
@@ -465,8 +595,7 @@ onMounted(() => {
                 />
                 <Button
                     type="submit"
-                    label="Lưu Đầu sách"
-                    icon="pi pi-save"
+                    label="Lưu đầu sách"
                     :loading="saving"
                 />
             </div>

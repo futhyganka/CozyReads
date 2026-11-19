@@ -49,7 +49,7 @@ async function handleSubmitFeedback() {
             summary: 'Gửi góp ý thành công',
             detail:
                 res.message ||
-                'Cảm ơn bạn đã đóng góp ý kiến cho Thư viện CozyReads.',
+                'Cảm ơn bạn đã đóng góp ý kiến cho thư viện CozyReads.',
             life: 4500,
         });
     } catch (err) {
@@ -64,7 +64,7 @@ async function handleSubmitFeedback() {
     <div class="cr-container cr-page">
         <div class="cr-page-header">
             <div>
-                <h1 class="cr-page-title">Góp ý Thư viện CozyReads</h1>
+                <h1 class="cr-page-title">Góp ý thư viện CozyReads</h1>
                 <p class="cr-page-subtitle">
                     Mọi ý kiến đóng góp của bạn đều giúp CozyReads hoàn thiện chất lượng phục vụ
                 </p>
@@ -73,7 +73,7 @@ async function handleSubmitFeedback() {
 
         <div class="cr-grid-2 cr-section">
             <Card>
-                <template #title>Gửi Ý kiến Góp ý</template>
+                <template #title>Gửi ý kiến góp ý</template>
                 <template #content>
                     <form
                         class="cr-flex-col cr-gap-md"
@@ -90,8 +90,7 @@ async function handleSubmitFeedback() {
                             :closable="true"
                             @close="lastSubmitted = null"
                         >
-                            Đã ghi nhận góp ý mã
-                            <strong>{{ lastSubmitted.maPhanHoi }}</strong>. Cảm ơn sự đóng góp của bạn!
+                            Đã ghi nhận góp ý. Cảm ơn sự đóng góp của bạn!
                         </Message>
 
                         <div class="cr-flex-between cr-flex-wrap">
@@ -149,7 +148,7 @@ async function handleSubmitFeedback() {
 
                         <Button
                             type="submit"
-                            label="Gửi Góp ý"
+                            label="Gửi góp ý"
                             icon="pi pi-comment"
                             :loading="submitting"
                             fluid
@@ -159,14 +158,14 @@ async function handleSubmitFeedback() {
             </Card>
 
             <Card>
-                <template #title>Về Chức năng Góp ý</template>
+                <template #title>Về chức năng góp ý</template>
                 <template #content>
                     <div class="cr-flex-col cr-gap-sm cr-muted">
                         <p>
-                            • <strong>Tiếp nhận & Xem xét:</strong> Toàn bộ ý kiến góp ý được chuyển trực tiếp tới bộ phận Quản lý và Thủ thư của CozyReads để rà soát và cải thiện chất lượng dịch vụ.
+                            • <strong>Tiếp nhận & xem xét:</strong> Toàn bộ ý kiến góp ý được chuyển trực tiếp tới bộ phận quản lý và thủ thư của CozyReads để rà soát và cải thiện chất lượng dịch vụ.
                         </p>
                         <p>
-                            • <strong>Quyền riêng tư:</strong> Khách chưa đăng nhập hoặc độc giả chọn chế độ ẩn danh sẽ được hệ thống ghi nhận hoàn toàn <strong>Ẩn danh</strong> (không lưu thông tin định danh cá nhân).
+                            • <strong>Quyền riêng tư:</strong> Khách chưa đăng nhập hoặc độc giả chọn chế độ ẩn danh sẽ được hệ thống ghi nhận hoàn toàn <strong>ẩn danh</strong> (không lưu thông tin định danh cá nhân).
                         </p>
                         <p>
                             • <strong>Cần phản hồi trực tiếp?</strong> Nếu bạn có câu hỏi hoặc vấn đề tài khoản cần thư viện trả lời qua Email, vui lòng sử dụng trang

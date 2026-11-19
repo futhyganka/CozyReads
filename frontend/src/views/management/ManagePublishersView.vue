@@ -125,7 +125,7 @@ async function handleSave() {
 
 function handleDelete(item) {
     confirm.require({
-        header: 'Xác nhận Xóa Nhà xuất bản',
+        header: 'Xác nhận xóa nhà xuất bản',
         message: `Xóa nhà xuất bản "${item.tenNxb}" (${item.maNXB})?`,
         icon: 'pi pi-trash',
         acceptLabel: 'Xóa',
@@ -161,13 +161,13 @@ onMounted(() => {
     <Card>
         <template #title>
             <div class="cr-flex-between">
-                <span>Quản lý Nhà Xuất Bản</span>
-                <Button label="Thêm Nhà xuất bản" icon="pi pi-plus" @click="openCreate" />
+                <span>Quản lý nhà xuất bản</span>
+                <Button label="Thêm nhà xuất bản" @click="openCreate" />
             </div>
         </template>
         <template #content>
             <div class="cr-toolbar">
-                <div class="cr-items-center">
+                <div class="cr-items-center cr-flex-wrap">
                     <InputText
                         v-model="search"
                         placeholder="Tìm mã, tên NXB, địa chỉ..."
@@ -186,6 +186,18 @@ onMounted(() => {
                             fetchPublishers();
                         "
                     />
+                    <Button
+                        v-if="search"
+                        label="Đặt lại"
+                        icon="pi pi-filter-slash"
+                        severity="secondary"
+                        outlined
+                        @click="
+                            search = '';
+                            page = 1;
+                            fetchPublishers();
+                        "
+                    />
                 </div>
             </div>
 
@@ -200,7 +212,7 @@ onMounted(() => {
                 @page="onPage"
             >
                 <Column field="maNXB" header="Mã NXB" />
-                <Column field="tenNxb" header="Tên Nhà xuất bản" />
+                <Column field="tenNxb" header="Tên nhà xuất bản" />
                 <Column field="diaChi" header="Địa chỉ" />
                 <Column header="Thao tác">
                     <template #body="{ data }">
@@ -228,18 +240,18 @@ onMounted(() => {
 
     <Dialog
         v-model:visible="dialogVisible"
-        :header="isEditing ? 'Cập nhật Nhà xuất bản' : 'Thêm Nhà xuất bản mới'"
+        :header="isEditing ? 'Cập nhật nhà xuất bản' : 'Thêm nhà xuất bản mới'"
         modal
         :style="{ width: '460px' }"
     >
         <form class="cr-flex-col cr-gap-md" @submit.prevent="handleSave">
             <Message v-if="formError" severity="error">{{ formError }}</Message>
             <div class="cr-field">
-                <label class="cr-label">Mã NXB (Để trống tự sinh)</label>
+                <label class="cr-label">Mã NXB (để trống tự sinh)</label>
                 <InputText v-model="form.maNXB" :disabled="isEditing" fluid />
             </div>
             <div class="cr-field">
-                <label class="cr-label">Tên Nhà xuất bản *</label>
+                <label class="cr-label">Tên nhà xuất bản *</label>
                 <InputText v-model="form.tenNxb" fluid />
             </div>
             <div class="cr-field">
@@ -254,7 +266,7 @@ onMounted(() => {
                     outlined
                     @click="dialogVisible = false"
                 />
-                <Button type="submit" label="Lưu" icon="pi pi-save" :loading="saving" />
+                <Button type="submit" label="Lưu" :loading="saving" />
             </div>
         </form>
     </Dialog>

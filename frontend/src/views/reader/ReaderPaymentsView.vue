@@ -86,11 +86,11 @@ onMounted(() => {
     <Card>
         <template #title>
             <div class="cr-flex-between cr-flex-wrap">
-                <span>Phí Gia hạn & Bồi thường Mất sách</span>
+                <span>Phí gia hạn & bồi thường mất sách</span>
                 <div class="cr-items-center">
                     <Button
                         v-if="authStore.userProfile?.loaiDocGia === 'docGia_tuDo'"
-                        label="Tạo yêu cầu Gia hạn thẻ"
+                        label="Tạo yêu cầu gia hạn thẻ"
                         icon="pi pi-plus"
                         size="small"
                         @click="renewalDialogVisible = true"
@@ -158,7 +158,7 @@ onMounted(() => {
 
     <Dialog
         v-model:visible="renewalDialogVisible"
-        header="Tạo yêu cầu Thanh toán Gia hạn Thẻ"
+        header="Tạo yêu cầu thanh toán gia hạn thẻ"
         modal
         :style="{ width: '440px' }"
     >
@@ -192,7 +192,7 @@ onMounted(() => {
                     @click="renewalDialogVisible = false"
                 />
                 <Button
-                    label="Xác nhận Tạo"
+                    label="Xác nhận tạo"
                     icon="pi pi-check"
                     :loading="creating"
                     fluid

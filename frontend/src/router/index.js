@@ -25,13 +25,13 @@ const routes = [
                 path: 'kham-pha',
                 name: 'explore-books',
                 component: () => import('@/views/reader/ExploreBooksView.vue'),
-                meta: { title: 'Khám phá Sách — CozyReads' },
+                meta: { title: 'Khám phá sách — CozyReads' },
             },
             {
                 path: 'sach/:id',
                 name: 'book-detail',
                 component: () => import('@/views/reader/BookDetailView.vue'),
-                meta: { title: 'Chi tiết Sách — CozyReads' },
+                meta: { title: 'Chi tiết sách — CozyReads' },
             },
             {
                 path: 'gioi-thieu',
@@ -43,7 +43,7 @@ const routes = [
                 path: 'chinh-sach',
                 name: 'policy',
                 component: () => import('@/views/reader/PolicyView.vue'),
-                meta: { title: 'Chính sách Thư viện — CozyReads' },
+                meta: { title: 'Chính sách thư viện — CozyReads' },
             },
             {
                 path: 'lien-he',
@@ -70,21 +70,21 @@ const routes = [
                         name: 'account-overview',
                         component: () =>
                             import('@/views/reader/AccountOverviewView.vue'),
-                        meta: { title: 'Tổng quan Tài khoản — CozyReads' },
+                        meta: { title: 'Tổng quan tài khoản — CozyReads' },
                     },
                     {
                         path: 'ho-so',
                         name: 'reader-profile',
                         component: () =>
                             import('@/views/reader/ReaderProfileView.vue'),
-                        meta: { title: 'Hồ sơ Cá nhân — CozyReads' },
+                        meta: { title: 'Hồ sơ cá nhân — CozyReads' },
                     },
                     {
                         path: 'the-doc-gia',
                         name: 'reader-card',
                         component: () =>
                             import('@/views/reader/ReaderCardPointsView.vue'),
-                        meta: { title: 'Thẻ Độc giả & Điểm uy tín — CozyReads' },
+                        meta: { title: 'Thẻ độc giả & Điểm uy tín — CozyReads' },
                     },
                     {
                         path: 'giu-sach',
@@ -105,7 +105,7 @@ const routes = [
                         name: 'reader-borrow-history',
                         component: () =>
                             import('@/views/reader/ReaderBorrowHistoryView.vue'),
-                        meta: { title: 'Lịch sử Mượn trả — CozyReads' },
+                        meta: { title: 'Lịch sử mượn trả — CozyReads' },
                     },
                     {
                         path: 'thanh-toan',
@@ -119,7 +119,7 @@ const routes = [
                         name: 'account-security',
                         component: () =>
                             import('@/views/reader/AccountSecurityView.vue'),
-                        meta: { title: 'Bảo mật Tài khoản — CozyReads' },
+                        meta: { title: 'Bảo mật tài khoản — CozyReads' },
                     },
                 ],
             },
@@ -142,13 +142,13 @@ const routes = [
                 path: 'dang-nhap',
                 name: 'reader-login',
                 component: () => import('@/views/auth/LoginView.vue'),
-                meta: { title: 'Đăng nhập Độc giả — CozyReads' },
+                meta: { title: 'Đăng nhập độc giả — CozyReads' },
             },
             {
                 path: 'dang-ky',
                 name: 'register',
                 component: () => import('@/views/auth/RegisterView.vue'),
-                meta: { title: 'Đăng ký Thẻ Độc giả — CozyReads' },
+                meta: { title: 'Đăng ký thẻ độc giả — CozyReads' },
             },
             {
                 path: 'quen-mat-khau',
@@ -171,7 +171,7 @@ const routes = [
                 path: '',
                 name: 'staff-login',
                 component: () => import('@/views/auth/StaffLoginView.vue'),
-                meta: { title: 'Đăng nhập Nhân viên & Quản trị — CozyReads' },
+                meta: { title: 'Đăng nhập nhân viên & quản trị — CozyReads' },
             },
         ],
     },
@@ -188,72 +188,70 @@ const routes = [
                 name: 'mgmt-dashboard',
                 component: () =>
                     import('@/views/management/StaffDashboardView.vue'),
-                meta: { title: 'Dashboard Quản lý — CozyReads' },
+                meta: { title: 'Dashboard quản lý — CozyReads' },
             },
             {
                 path: 'sach',
                 name: 'mgmt-books',
                 component: () =>
                     import('@/views/management/ManageBooksView.vue'),
-                meta: { title: 'Quản lý Đầu sách — CozyReads' },
+                meta: { title: 'Quản lý đầu sách — CozyReads' },
             },
             {
                 path: 'doc-gia',
                 name: 'mgmt-readers',
                 component: () =>
                     import('@/views/management/ManageReadersView.vue'),
-                meta: { title: 'Quản lý Độc giả — CozyReads' },
+                meta: { title: 'Quản lý độc giả — CozyReads' },
             },
             {
-                path: 'muon-giu-sach',
+                path: 'phieu-muon',
                 name: 'mgmt-borrows',
                 component: () =>
                     import(
                         '@/views/management/BorrowReserveManagementView.vue'
                     ),
-                meta: { title: 'Mượn & Giữ sách — CozyReads' },
+                meta: { title: 'Quản lý phiếu mượn — CozyReads' },
+            },
+            {
+                path: 'muon-giu-sach',
+                redirect: '/quan-ly/phieu-muon',
             },
             {
                 path: 'tra-sach',
-                name: 'mgmt-returns',
-                component: () =>
-                    import('@/views/management/ReturnBookManagementView.vue'),
-                meta: { title: 'Tiếp nhận Trả sách — CozyReads' },
+                redirect: '/quan-ly/phieu-muon',
             },
             {
                 path: 'bao-mat-sach',
-                name: 'mgmt-lost-books',
-                component: () =>
-                    import('@/views/management/LostBookManagementView.vue'),
-                meta: { title: 'Báo mất & Bồi thường — CozyReads' },
+                redirect: '/quan-ly/phieu-muon',
             },
             {
                 path: 'danh-muc',
                 name: 'mgmt-categories',
                 component: () =>
                     import('@/views/management/ManageCategoriesView.vue'),
-                meta: { title: 'Quản lý Danh mục — CozyReads' },
+                meta: { title: 'Quản lý danh mục — CozyReads' },
             },
             {
                 path: 'tac-gia',
                 name: 'mgmt-authors',
                 component: () =>
                     import('@/views/management/ManageAuthorsView.vue'),
-                meta: { title: 'Quản lý Tác giả — CozyReads' },
+                meta: { title: 'Quản lý tác giả — CozyReads' },
             },
             {
                 path: 'nha-xuat-ban',
                 name: 'mgmt-publishers',
                 component: () =>
                     import('@/views/management/ManagePublishersView.vue'),
-                meta: { title: 'Quản lý Nhà xuất bản — CozyReads' },
+                meta: { title: 'Quản lý nhà xuất bản — CozyReads' },
             },
             {
                 path: 'thanh-toan',
                 name: 'mgmt-payments',
                 component: () =>
                     import('@/views/management/ManagePaymentsView.vue'),
-                meta: { title: 'Quản lý Thanh toán — CozyReads' },
+                meta: { title: 'Quản lý thanh toán — CozyReads' },
             },
             {
                 path: 'lien-he',
@@ -274,7 +272,7 @@ const routes = [
                 name: 'mgmt-profile',
                 component: () =>
                     import('@/views/management/StaffProfileView.vue'),
-                meta: { title: 'Hồ sơ Nhân viên — CozyReads' },
+                meta: { title: 'Hồ sơ nhân viên — CozyReads' },
             },
             {
                 path: 'admin/dashboard',
@@ -284,7 +282,7 @@ const routes = [
                         '@/views/management/admin/AdminDashboardView.vue'
                     ),
                 meta: {
-                    title: 'Dashboard Quản trị — CozyReads',
+                    title: 'Dashboard quản trị — CozyReads',
                     roles: [ROLES.QUANTRIVIEN],
                 },
             },
@@ -294,7 +292,7 @@ const routes = [
                 component: () =>
                     import('@/views/management/admin/ManageStaffView.vue'),
                 meta: {
-                    title: 'Quản lý Nhân sự — CozyReads',
+                    title: 'Quản lý nhân sự — CozyReads',
                     roles: [ROLES.QUANTRIVIEN],
                 },
             },
@@ -304,7 +302,7 @@ const routes = [
                 component: () =>
                     import('@/views/management/admin/ManageAccountsView.vue'),
                 meta: {
-                    title: 'Quản lý Tài khoản — CozyReads',
+                    title: 'Quản lý tài khoản — CozyReads',
                     roles: [ROLES.QUANTRIVIEN],
                 },
             },
@@ -314,7 +312,7 @@ const routes = [
                 component: () =>
                     import('@/views/management/admin/AdminReportsView.vue'),
                 meta: {
-                    title: 'Báo cáo Thống kê — CozyReads',
+                    title: 'Báo cáo thống kê — CozyReads',
                     roles: [ROLES.QUANTRIVIEN],
                 },
             },

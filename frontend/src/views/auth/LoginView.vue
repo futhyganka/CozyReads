@@ -31,7 +31,7 @@ function validateField(field) {
     if (field === 'identifier') {
         const val = readerForm.identifier.trim();
         errors.identifier = !val
-            ? 'Vui lòng nhập Email hoặc Mã độc giả.'
+            ? 'Vui lòng nhập email hoặc mã độc giả.'
             : '';
         return !errors.identifier;
     }
@@ -78,11 +78,11 @@ async function handleReaderLogin() {
 <template>
     <Card>
         <template #title>
-            <div style="text-align: center">Đăng nhập Độc giả CozyReads</div>
+            <div style="text-align: center">Đăng nhập độc giả CozyReads</div>
         </template>
         <template #subtitle>
             <div style="text-align: center">
-                Sử dụng Email hoặc Mã thẻ độc giả để đặt giữ sách và quản lý tài khoản
+                Sử dụng email hoặc mã thẻ độc giả để đặt giữ sách và quản lý tài khoản
             </div>
         </template>
         <template #content>
@@ -101,7 +101,7 @@ async function handleReaderLogin() {
             >
                 <div class="cr-field">
                     <label class="cr-label" for="reader-id">
-                        Email hoặc Mã độc giả *
+                        Email hoặc mã độc giả *
                     </label>
                     <InputText
                         id="reader-id"

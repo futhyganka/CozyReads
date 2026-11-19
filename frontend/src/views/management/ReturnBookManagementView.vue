@@ -64,7 +64,7 @@ async function fetchReturnableBorrows() {
 
 function handleReturnBook(item) {
     confirm.require({
-        header: 'Xác nhận Tiếp nhận Trả Sách',
+        header: 'Xác nhận tiếp nhận trả sách',
         message: `Xác nhận độc giả "${item.maDocGia?.hoLot || ''} ${item.maDocGia?.ten || ''}" hoàn trả cuốn "${item.maSach?.tenSach}"? Tồn kho sách sẽ tự động cộng thêm 1.`,
         icon: 'pi pi-check-square',
         acceptLabel: 'Tiếp nhận trả sách',
@@ -100,7 +100,7 @@ onMounted(() => {
     <Card>
         <template #title>
             <div class="cr-flex-between cr-flex-wrap">
-                <span>Tiếp nhận Trả sách tại Quầy</span>
+                <span>Tiếp nhận trả sách tại quầy</span>
                 <div class="cr-items-center">
                     <Select
                         v-model="filterMode"

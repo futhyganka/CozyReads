@@ -45,7 +45,7 @@ onMounted(() => {
     <Card>
         <template #title>
             <div class="cr-flex-between cr-flex-wrap">
-                <span>Toàn bộ Lịch sử Mượn & Trả sách</span>
+                <span>Toàn bộ lịch sử mượn & trả sách</span>
                 <div class="cr-items-center">
                     <Select
                         v-model="statusFilter"

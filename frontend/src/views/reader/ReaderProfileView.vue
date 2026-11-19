@@ -12,12 +12,56 @@ import docGiaService from '@/services/docgia.service';
 import authService from '@/services/auth.service';
 import { useAuthStore } from '@/stores/auth.store';
 import { PHAI_OPTIONS, REGEX } from '@/utils/constants';
+import { readImageFileAsDataUrl } from '@/utils/imageUpload';
+import AvatarCropperDialog from '@/components/common/AvatarCropperDialog.vue';
 
 const toast = useToast();
 const authStore = useAuthStore();
 
 const saving = ref(false);
 const errorMsg = ref('');
+const avatarFileInput = ref(null);
+const selectedAvatarFileName = ref('');
+const cropperVisible = ref(false);
+const rawAvatarForCrop = ref('');
+
+async function handleAvatarFileChange(event) {
+    const file = event.target?.files?.[0];
+    if (!file) return;
+    errors.avatar = '';
+    try {
+        const dataUrl = await readImageFileAsDataUrl(file, {
+            maxWidth: 1200,
+            maxHeight: 1200,
+            quality: 0.92,
+        });
+        selectedAvatarFileName.value = file.name;
+        rawAvatarForCrop.value = dataUrl;
+        cropperVisible.value = true;
+    } catch (err) {
+        errors.avatar = err.message;
+    } finally {
+        if (event.target) event.target.value = '';
+    }
+}
+
+function handleConfirmAvatarCrop(croppedDataUrl) {
+    form.avatar = croppedDataUrl;
+}
+
+function openRecropAvatar() {
+    if (!form.avatar) return;
+    rawAvatarForCrop.value = form.avatar;
+    cropperVisible.value = true;
+}
+
+function clearAvatarFile() {
+    form.avatar = '';
+    rawAvatarForCrop.value = '';
+    selectedAvatarFileName.value = '';
+    errors.avatar = '';
+    if (avatarFileInput.value) avatarFileInput.value.value = '';
+}
 
 const form = reactive({
     hoLot: '',
@@ -236,7 +280,7 @@ onMounted(async () => {
 
 <template>
     <Card>
-        <template #title>Hồ sơ Cá nhân Độc giả</template>
+        <template #title>Hồ sơ cá nhân độc giả</template>
         <template #subtitle>
             Cập nhật thông tin liên hệ và xác thực thay đổi địa chỉ email qua OTP
         </template>
@@ -252,7 +296,7 @@ onMounted(async () => {
             >
                 <div class="cr-form-grid">
                     <div class="cr-field">
-                        <label class="cr-label">Mã độc giả (Cố định)</label>
+                        <label class="cr-label">Mã độc giả (cố định)</label>
                         <InputText
                             :modelValue="authStore.userProfile?.maDocGia"
                             disabled
@@ -272,7 +316,7 @@ onMounted(async () => {
                             />
                             <Button
                                 type="button"
-                                label="Đổi Email"
+                                label="Đổi email"
                                 icon="pi pi-envelope"
                                 severity="secondary"
                                 outlined
@@ -361,17 +405,73 @@ onMounted(async () => {
                         </small>
                     </div>
 
-                    <div class="cr-field">
-                        <label class="cr-label">URL Ảnh đại diện (tùy chọn)</label>
-                        <InputText
-                            v-model="form.avatar"
-                            placeholder="https://..."
-                            :invalid="!!errors.avatar"
-                            :class="{ 'cr-input-invalid': !!errors.avatar }"
-                            fluid
-                            @update:modelValue="validateField('avatar')"
-                            @blur="validateField('avatar')"
+                    <div class="cr-field cr-field-full">
+                        <label class="cr-label">Ảnh đại diện (tùy chọn)</label>
+                        <input
+                            ref="avatarFileInput"
+                            type="file"
+                            accept="image/*"
+                            style="display: none"
+                            @change="handleAvatarFileChange"
                         />
+                        <div class="cr-items-center cr-flex-wrap" style="gap: 1rem">
+                            <div
+                                style="width: 68px; height: 68px; border-radius: 50%; border: 1px solid var(--cr-border); overflow: hidden; background: var(--cr-sage-light); display: flex; align-items: center; justify-content: center; flex-shrink: 0"
+                            >
+                                <img
+                                    v-if="form.avatar"
+                                    :src="form.avatar"
+                                    alt="Ảnh đại diện"
+                                    referrerpolicy="no-referrer"
+                                    style="width: 100%; height: 100%; object-fit: cover"
+                                />
+                                <i
+                                    v-else
+                                    class="pi pi-user"
+                                    style="font-size: 1.6rem; color: var(--cr-sage-dark)"
+                                ></i>
+                            </div>
+                            <div class="cr-flex-col cr-gap-xs">
+                                <div class="cr-items-center cr-flex-wrap">
+                                    <Button
+                                        type="button"
+                                        :label="form.avatar ? 'Đổi ảnh đại diện' : 'Chọn tệp ảnh từ máy'"
+                                        icon="pi pi-upload"
+                                        severity="secondary"
+                                        outlined
+                                        size="small"
+                                        @click="avatarFileInput?.click()"
+                                    />
+                                    <Button
+                                        v-if="form.avatar"
+                                        type="button"
+                                        label="Cắt / Căn chỉnh lại"
+                                        icon="pi pi-sliders-h"
+                                        severity="secondary"
+                                        text
+                                        size="small"
+                                        @click="openRecropAvatar"
+                                    />
+                                    <Button
+                                        v-if="form.avatar"
+                                        type="button"
+                                        label="Xóa ảnh"
+                                        icon="pi pi-times"
+                                        severity="danger"
+                                        text
+                                        size="small"
+                                        @click="clearAvatarFile"
+                                    />
+                                </div>
+                                <span class="cr-muted">
+                                    {{
+                                        selectedAvatarFileName
+                                            ? `Đã chọn: ${selectedAvatarFileName}`
+                                            : 'Hỗ trợ tệp JPG, PNG, WEBP, GIF, SVG (tối đa 5MB).'
+                                    }}
+                                </span>
+                            </div>
+                        </div>
                         <small v-if="errors.avatar" class="cr-error">
                             {{ errors.avatar }}
                         </small>
@@ -407,7 +507,7 @@ onMounted(async () => {
 
     <Dialog
         v-model:visible="emailDialogVisible"
-        header="Xác thực OTP Đổi Email Mới"
+        header="Xác thực OTP đổi email mới"
         modal
         :style="{ width: '460px' }"
     >
@@ -418,7 +518,7 @@ onMounted(async () => {
 
             <template v-if="emailStep === 1">
                 <div class="cr-field">
-                    <label class="cr-label">Địa chỉ Email mới *</label>
+                    <label class="cr-label">Địa chỉ email mới *</label>
                     <InputText
                         v-model="emailMoi"
                         type="email"
@@ -434,7 +534,7 @@ onMounted(async () => {
                     </small>
                 </div>
                 <Button
-                    label="Gửi mã OTP tới Email mới"
+                    label="Gửi mã OTP tới email mới"
                     icon="pi pi-send"
                     :loading="emailLoading"
                     fluid
@@ -470,7 +570,7 @@ onMounted(async () => {
                         @click="emailStep = 1"
                     />
                     <Button
-                        label="Xác nhận Đổi Email"
+                        label="Xác nhận đổi email"
                         icon="pi pi-check"
                         :loading="emailLoading"
                         fluid
@@ -480,4 +580,10 @@ onMounted(async () => {
             </template>
         </div>
     </Dialog>
+
+    <AvatarCropperDialog
+        v-model:visible="cropperVisible"
+        :imageSrc="rawAvatarForCrop"
+        @confirm="handleConfirmAvatarCrop"
+    />
 </template>

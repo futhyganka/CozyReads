@@ -11,6 +11,7 @@ const sachRoute = require('./sach.route');
 const muonTraRoute = require('./muontra.route');
 const thanhToanRoute = require('./thanhtoan.route');
 const phanHoiRoute = require('./phanhoi.route');
+const chatRoute = require('./chat.route');
 
 // 1. Auth API
 router.use('/auth', authRoute);
@@ -25,6 +26,7 @@ router.use('/sachs', sachRoute);
 router.use('/theodoimuonsachs', muonTraRoute);
 router.use('/kythanhtoans', thanhToanRoute);
 router.use('/phanhois', phanHoiRoute);
+router.use('/chat', chatRoute);
 
 // 3. Tương thích ngược với các endpoint cũ
 router.use('/doc-gia', docGiaRoute);

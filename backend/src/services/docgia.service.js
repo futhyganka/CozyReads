@@ -35,6 +35,7 @@ class DocGiaService {
             chuKyThanhToan = '1_thang',
             email = null,
             password = null,
+            avatar = '',
         } = data;
 
         if (!hoLot || !ten) {
@@ -103,6 +104,7 @@ class DocGiaService {
             dienThoai: dienThoai.trim(),
             email: verifiedEmail,
             password: hashedPassword,
+            avatar: avatar || '',
             chuKyThanhToan: loaiDocGia === LOAI_DOC_GIA.DOCGIA_TUDO ? chuKyThanhToan : '6_thang_mien_phi',
             ngayHetHanThe,
             loaiDocGia,

@@ -24,32 +24,22 @@ const navigate = (path) => {
 const menuGroups = computed(() => {
     const groups = [
         {
-            label: 'Nghiệp vụ Quầy Thư viện',
+            label: 'Nghiệp vụ quầy thư viện',
             icon: 'pi pi-briefcase',
             expanded: true,
             items: [
                 {
-                    label: 'Dashboard Tổng quan',
+                    label: 'Dashboard tổng quan',
                     icon: 'pi pi-home',
                     command: () => navigate('/quan-ly'),
                 },
                 {
-                    label: 'Mượn & Giữ sách',
+                    label: 'Quản lý phiếu mượn',
                     icon: 'pi pi-arrow-right-arrow-left',
-                    command: () => navigate('/quan-ly/muon-giu-sach'),
+                    command: () => navigate('/quan-ly/phieu-muon'),
                 },
                 {
-                    label: 'Tiếp nhận Trả sách',
-                    icon: 'pi pi-check-square',
-                    command: () => navigate('/quan-ly/tra-sach'),
-                },
-                {
-                    label: 'Báo mất / Hỏng sách',
-                    icon: 'pi pi-exclamation-triangle',
-                    command: () => navigate('/quan-ly/bao-mat-sach'),
-                },
-                {
-                    label: 'Quản lý Thanh toán',
+                    label: 'Quản lý thanh toán',
                     icon: 'pi pi-wallet',
                     command: () => navigate('/quan-ly/thanh-toan'),
                 },
@@ -71,17 +61,17 @@ const menuGroups = computed(() => {
             expanded: true,
             items: [
                 {
-                    label: 'Quản lý Đầu sách',
+                    label: 'Quản lý đầu sách',
                     icon: 'pi pi-book',
                     command: () => navigate('/quan-ly/sach'),
                 },
                 {
-                    label: 'Quản lý Độc giả',
+                    label: 'Quản lý độc giả',
                     icon: 'pi pi-users',
                     command: () => navigate('/quan-ly/doc-gia'),
                 },
                 {
-                    label: 'Danh mục Sách',
+                    label: 'Danh mục sách',
                     icon: 'pi pi-tags',
                     command: () => navigate('/quan-ly/danh-muc'),
                 },
@@ -98,7 +88,7 @@ const menuGroups = computed(() => {
             ],
         },
         {
-            label: 'Tài khoản Nhân viên',
+            label: 'Tài khoản nhân viên',
             icon: 'pi pi-user',
             expanded: true,
             items: [
@@ -113,27 +103,27 @@ const menuGroups = computed(() => {
 
     if (authStore.isAdmin) {
         groups.push({
-            label: 'Quản trị Hệ thống (Admin)',
+            label: 'Quản trị hệ thống (Admin)',
             icon: 'pi pi-shield',
             expanded: true,
             items: [
                 {
-                    label: 'Dashboard Quản trị',
+                    label: 'Dashboard quản trị',
                     icon: 'pi pi-chart-bar',
                     command: () => navigate('/quan-ly/admin/dashboard'),
                 },
                 {
-                    label: 'Quản lý Nhân viên',
+                    label: 'Quản lý nhân viên',
                     icon: 'pi pi-sitemap',
                     command: () => navigate('/quan-ly/admin/nhan-vien'),
                 },
                 {
-                    label: 'Quản lý Tài khoản',
+                    label: 'Quản lý tài khoản',
                     icon: 'pi pi-user-edit',
                     command: () => navigate('/quan-ly/admin/tai-khoan'),
                 },
                 {
-                    label: 'Báo cáo Thống kê',
+                    label: 'Báo cáo thống kê',
                     icon: 'pi pi-chart-line',
                     command: () => navigate('/quan-ly/admin/bao-cao'),
                 },
@@ -184,7 +174,7 @@ function handleLogout() {
 
             <div class="cr-flex-col cr-gap-xs" style="padding: 0 0.25rem">
                 <Button
-                    label="Đăng xuất Nhân viên"
+                    label="Đăng xuất nhân viên"
                     icon="pi pi-sign-out"
                     severity="danger"
                     outlined
@@ -207,7 +197,7 @@ function handleLogout() {
                         @click="mobileDrawerVisible = true"
                     />
                     <span style="font-weight: 700; font-size: 1.05rem">
-                        Hệ thống Quản lý Thư viện CozyReads
+                        Hệ thống quản lý thư viện CozyReads
                     </span>
                 </div>
 
@@ -250,7 +240,7 @@ function handleLogout() {
                 <PanelMenu :model="menuGroups" multiple />
                 <Divider />
                 <Button
-                    label="Đăng xuất Nhân viên"
+                    label="Đăng xuất nhân viên"
                     icon="pi pi-sign-out"
                     severity="danger"
                     outlined

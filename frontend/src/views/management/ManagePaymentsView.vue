@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
 import { useToast } from 'primevue/usetoast';
 import { useConfirm } from 'primevue/useconfirm';
 import Card from 'primevue/card';
@@ -66,19 +66,22 @@ const editForm = reactive({
     ghiChu: '',
 });
 
+// Chi tiết thanh toán
+const detailDialogVisible = ref(false);
+const selectedDetailPayment = ref(null);
+
+function openDetailDialog(item) {
+    selectedDetailPayment.value = item;
+    detailDialogVisible.value = true;
+}
+
 async function fetchPayments() {
     loading.value = true;
     try {
-        const params = {
-            page: query.page,
-            limit: query.limit,
-        };
-        if (query.search.trim()) params.search = query.search.trim();
-        if (query.loai) params.loai = query.loai;
-        if (query.trangThai) params.trangThai = query.trangThai;
-        if (query.phuongThuc) params.phuongThuc = query.phuongThuc;
-
-        const res = await thanhToanService.getDanhSachThanhToan(params);
+        const res = await thanhToanService.getDanhSachThanhToan({
+            page: 1,
+            limit: 500,
+        });
         payments.value = res.data || [];
         totalRecords.value = res.total || 0;
     } catch (err) {
@@ -93,10 +96,49 @@ async function fetchPayments() {
     }
 }
 
-function onPage(event) {
-    query.page = event.page + 1;
-    query.limit = event.rows;
-    fetchPayments();
+const filteredPayments = computed(() => {
+    let list = payments.value;
+    if (query.loai) {
+        list = list.filter((p) => p.loai === query.loai);
+    }
+    if (query.trangThai) {
+        list = list.filter((p) => p.trangThai === query.trangThai);
+    }
+    if (query.phuongThuc) {
+        list = list.filter((p) => p.phuongThuc === query.phuongThuc);
+    }
+
+    const kw = query.search.trim().toLowerCase();
+    if (kw) {
+        list = list.filter((p) => {
+            const maGD = (p.maThanhToan || '').toLowerCase();
+            const maDG = (p.maDocGia?.maDocGia || '').toLowerCase();
+            const hoTen =
+                `${p.maDocGia?.hoLot || ''} ${p.maDocGia?.ten || ''}`
+                    .trim()
+                    .toLowerCase();
+            const sdt = (p.maDocGia?.dienThoai || '').toLowerCase();
+            const msnv = (p.msnv?.msnv || '').toLowerCase();
+            const ghiChu = (p.ghiChu || '').toLowerCase();
+
+            return (
+                maGD.includes(kw) ||
+                maDG.includes(kw) ||
+                hoTen.includes(kw) ||
+                sdt.includes(kw) ||
+                msnv.includes(kw) ||
+                ghiChu.includes(kw)
+            );
+        });
+    }
+    return list;
+});
+
+function handleResetFilters() {
+    query.search = '';
+    query.loai = null;
+    query.trangThai = null;
+    query.phuongThuc = null;
 }
 
 async function openCreateDialog() {
@@ -162,10 +204,10 @@ async function handleCreatePayment() {
 
 function handleConfirmPayment(item) {
     confirm.require({
-        header: 'Xác nhận Đã Thu Tiền Thanh Toán',
+        header: 'Xác nhận đã thu tiền thanh toán',
         message: `Xác nhận giao dịch "${item.maThanhToan}" với số tiền ${formatCurrency(item.soTien)}? Hệ thống sẽ tự động gia hạn thẻ (nếu là phí gia hạn) hoặc hoàn tất bồi thường sách mất (nếu là phí bồi thường).`,
         icon: 'pi pi-check-circle',
-        acceptLabel: 'Xác nhận Đã thu tiền',
+        acceptLabel: 'Xác nhận đã thu tiền',
         rejectLabel: 'Hủy',
         accept: async () => {
             try {
@@ -191,7 +233,7 @@ function handleConfirmPayment(item) {
 
 function handleCancelPayment(item) {
     confirm.require({
-        header: 'Hủy Giao dịch Thanh toán',
+        header: 'Hủy giao dịch thanh toán',
         message: `Bạn có chắc muốn hủy giao dịch "${item.maThanhToan}"?`,
         icon: 'pi pi-times-circle',
         acceptLabel: 'Hủy giao dịch',
@@ -257,7 +299,7 @@ async function handleSaveEdit() {
 
 function handleDeletePayment(item) {
     confirm.require({
-        header: 'Xóa Giao dịch Thanh toán',
+        header: 'Xóa giao dịch thanh toán',
         message: `Xóa bản ghi giao dịch "${item.maThanhToan}"? (Chỉ cho phép xóa giao dịch chưa hoàn thành).`,
         icon: 'pi pi-trash',
         acceptLabel: 'Xóa',
@@ -293,24 +335,20 @@ onMounted(() => {
     <Card>
         <template #title>
             <div class="cr-flex-between cr-flex-wrap">
-                <span>Quản lý Phí Gia hạn & Bồi thường Sách</span>
+                <span>Quản lý phí gia hạn & bồi thường sách</span>
                 <Button
-                    label="Tạo Giao dịch mới"
-                    icon="pi pi-plus"
+                    label="Tạo giao dịch mới"
                     @click="openCreateDialog"
                 />
             </div>
         </template>
         <template #content>
             <div class="cr-toolbar">
-                <div class="cr-items-center cr-flex-wrap">
+                <div class="cr-items-center cr-flex-wrap" style="flex: 1">
                     <InputText
                         v-model="query.search"
-                        placeholder="Mã giao dịch..."
-                        @keyup.enter="
-                            query.page = 1;
-                            fetchPayments();
-                        "
+                        placeholder="Tìm mã GD, mã ĐG, họ tên, SĐT, MSNV, ghi chú..."
+                        style="min-width: 280px; flex: 1; max-width: 420px"
                     />
                     <Select
                         v-model="query.loai"
@@ -319,10 +357,6 @@ onMounted(() => {
                         optionValue="value"
                         placeholder="Loại phí"
                         showClear
-                        @change="
-                            query.page = 1;
-                            fetchPayments();
-                        "
                     />
                     <Select
                         v-model="query.trangThai"
@@ -331,34 +365,46 @@ onMounted(() => {
                         optionValue="value"
                         placeholder="Trạng thái"
                         showClear
-                        @change="
-                            query.page = 1;
-                            fetchPayments();
-                        "
+                    />
+                    <Select
+                        v-model="query.phuongThuc"
+                        :options="PHUONG_THUC_THANH_TOAN_OPTIONS"
+                        optionLabel="label"
+                        optionValue="value"
+                        placeholder="Phương thức"
+                        showClear
                     />
                     <Button
-                        label="Lọc"
-                        icon="pi pi-search"
+                        v-if="
+                            query.search ||
+                            query.loai ||
+                            query.trangThai ||
+                            query.phuongThuc
+                        "
+                        label="Đặt lại"
+                        icon="pi pi-filter-slash"
                         severity="secondary"
                         outlined
-                        @click="
-                            query.page = 1;
-                            fetchPayments();
-                        "
+                        @click="handleResetFilters"
+                    />
+                    <Button
+                        icon="pi pi-refresh"
+                        severity="secondary"
+                        outlined
+                        title="Làm mới"
+                        :loading="loading"
+                        @click="fetchPayments"
                     />
                 </div>
             </div>
 
             <DataTable
-                :value="payments"
+                :value="filteredPayments"
                 :loading="loading"
-                lazy
                 paginator
-                :rows="query.limit"
-                :totalRecords="totalRecords"
+                :rows="10"
                 :rowsPerPageOptions="[10, 20, 50]"
                 emptyMessage="Không có giao dịch thanh toán nào."
-                @page="onPage"
             >
                 <Column field="maThanhToan" header="Mã GD" />
                 <Column header="Độc giả">
@@ -379,31 +425,24 @@ onMounted(() => {
                         <strong>{{ formatCurrency(data.soTien) }}</strong>
                     </template>
                 </Column>
-                <Column header="Phương thức">
-                    <template #body="{ data }">
-                        {{ getPhuongThucLabel(data.phuongThuc) }}
-                    </template>
-                </Column>
                 <Column header="Trạng thái">
                     <template #body="{ data }">
                         <StatusTag type="thanhToan" :value="data.trangThai" />
                     </template>
                 </Column>
-                <Column header="Ngày tạo / xác nhận">
-                    <template #body="{ data }">
-                        <div>Tạo: {{ formatDate(data.ngayTao) }}</div>
-                        <div v-if="data.ngayThanhToan" class="cr-muted">
-                            XN: {{ formatDate(data.ngayThanhToan) }} ({{ data.msnv?.msnv }})
-                        </div>
-                    </template>
-                </Column>
                 <Column header="Thao tác">
                     <template #body="{ data }">
                         <div class="cr-items-center">
+                            <Button
+                                label="Chi tiết"
+                                severity="secondary"
+                                outlined
+                                size="small"
+                                @click="openDetailDialog(data)"
+                            />
                             <template v-if="data.trangThai === 'choXacNhan'">
                                 <Button
                                     label="Xác nhận"
-                                    icon="pi pi-check"
                                     size="small"
                                     @click="handleConfirmPayment(data)"
                                 />
@@ -446,7 +485,7 @@ onMounted(() => {
     <!-- Dialog Tạo Giao dịch -->
     <Dialog
         v-model:visible="createDialogVisible"
-        header="Tạo Giao dịch Thanh toán"
+        header="Tạo giao dịch thanh toán"
         modal
         :style="{ width: '480px' }"
     >
@@ -518,8 +557,7 @@ onMounted(() => {
                     @click="createDialogVisible = false"
                 />
                 <Button
-                    label="Tạo Giao dịch"
-                    icon="pi pi-check"
+                    label="Tạo giao dịch"
                     :loading="saving"
                     @click="handleCreatePayment"
                 />
@@ -530,7 +568,7 @@ onMounted(() => {
     <!-- Dialog Cập nhật giao dịch -->
     <Dialog
         v-model:visible="editDialogVisible"
-        header="Cập nhật Giao dịch Thanh toán"
+        header="Cập nhật giao dịch thanh toán"
         modal
         :style="{ width: '440px' }"
     >
@@ -558,9 +596,123 @@ onMounted(() => {
                 />
                 <Button
                     label="Lưu"
-                    icon="pi pi-save"
                     :loading="saving"
                     @click="handleSaveEdit"
+                />
+            </div>
+        </div>
+    </Dialog>
+
+    <!-- Dialog Chi tiết giao dịch thanh toán -->
+    <Dialog
+        v-model:visible="detailDialogVisible"
+        header="Chi tiết giao dịch thanh toán"
+        modal
+        :style="{ width: '520px', maxWidth: '95vw' }"
+    >
+        <div v-if="selectedDetailPayment" class="cr-flex-col cr-gap-md">
+            <div class="cr-grid-2">
+                <div>
+                    <span class="cr-muted">Mã giao dịch:</span>
+                    <div>
+                        <strong>{{ selectedDetailPayment.maThanhToan }}</strong>
+                    </div>
+                </div>
+                <div>
+                    <span class="cr-muted">Trạng thái:</span>
+                    <div>
+                        <StatusTag
+                            type="thanhToan"
+                            :value="selectedDetailPayment.trangThai"
+                        />
+                    </div>
+                </div>
+                <div>
+                    <span class="cr-muted">Độc giả:</span>
+                    <div>
+                        <strong>
+                            {{ selectedDetailPayment.maDocGia?.hoLot }}
+                            {{ selectedDetailPayment.maDocGia?.ten }}
+                        </strong>
+                    </div>
+                </div>
+                <div>
+                    <span class="cr-muted">Mã độc giả & SĐT:</span>
+                    <div>
+                        <strong>
+                            {{ selectedDetailPayment.maDocGia?.maDocGia || '—' }}
+                            {{
+                                selectedDetailPayment.maDocGia?.dienThoai
+                                    ? ` (${selectedDetailPayment.maDocGia.dienThoai})`
+                                    : ''
+                            }}
+                        </strong>
+                    </div>
+                </div>
+                <div>
+                    <span class="cr-muted">Loại phí:</span>
+                    <div>
+                        <StatusTag
+                            type="loaiThanhToan"
+                            :value="selectedDetailPayment.loai"
+                        />
+                    </div>
+                </div>
+                <div>
+                    <span class="cr-muted">Số tiền:</span>
+                    <div>
+                        <strong style="color: var(--cr-primary); font-size: 1.05rem">
+                            {{ formatCurrency(selectedDetailPayment.soTien) }}
+                        </strong>
+                    </div>
+                </div>
+                <div>
+                    <span class="cr-muted">Phương thức:</span>
+                    <div>
+                        <strong>
+                            {{ getPhuongThucLabel(selectedDetailPayment.phuongThuc) }}
+                        </strong>
+                    </div>
+                </div>
+                <div>
+                    <span class="cr-muted">Ngày tạo:</span>
+                    <div>
+                        <strong>
+                            {{ formatDate(selectedDetailPayment.ngayTao, true) }}
+                        </strong>
+                    </div>
+                </div>
+                <div>
+                    <span class="cr-muted">Ngày xác nhận:</span>
+                    <div>
+                        <strong>
+                            {{ formatDate(selectedDetailPayment.ngayThanhToan, true) }}
+                        </strong>
+                    </div>
+                </div>
+                <div>
+                    <span class="cr-muted">Nhân viên xử lý:</span>
+                    <div>
+                        <strong v-if="selectedDetailPayment.msnv">
+                            {{ selectedDetailPayment.msnv.hoTenNv || '' }}
+                            ({{ selectedDetailPayment.msnv.msnv }})
+                        </strong>
+                        <span v-else class="cr-muted">Chưa xử lý</span>
+                    </div>
+                </div>
+                <div class="cr-field-full">
+                    <span class="cr-muted">Ghi chú:</span>
+                    <div>
+                        {{ selectedDetailPayment.ghiChu || '—' }}
+                    </div>
+                </div>
+            </div>
+            <div class="cr-flex" style="justify-content: flex-end">
+                <Button
+                    label="Đóng"
+                    severity="secondary"
+                    outlined
+                    @click="detailDialogVisible = false"
                 />
             </div>
         </div>

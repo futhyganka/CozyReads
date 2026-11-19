@@ -20,7 +20,7 @@ const router = useRouter();
                     </p>
                     <div class="cr-items-center">
                         <Button
-                            label="Về Trang chủ"
+                            label="Về trang chủ"
                             icon="pi pi-home"
                             @click="router.push('/')"
                         />
