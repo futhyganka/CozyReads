@@ -180,7 +180,7 @@ onMounted(() => {
                             </strong>
                         </div>
                         <div class="cr-flex-between">
-                            <span class="cr-muted">Đầu sách đã hết trong kho (soQuyen = 0):</span>
+                            <span class="cr-muted">Đầu sách đã hết trong kho:</span>
                             <strong>
                                 {{ books.filter((b) => b.soQuyen <= 0).length }} đầu sách
                             </strong>

@@ -26,6 +26,7 @@ import {
     formatDate,
     getPhuongThucLabel,
 } from '@/utils/formatters';
+import { readImageFileAsDataUrl } from '@/utils/imageUpload';
 
 const toast = useToast();
 const confirm = useConfirm();
@@ -64,15 +65,122 @@ const editingPayment = ref(null);
 const editForm = reactive({
     phuongThuc: 'tienMat',
     ghiChu: '',
+    anhMinhChung: '',
 });
+const editFileInputRef = ref(null);
 
-// Chi tiết thanh toán
+// Xem ảnh minh chứng phóng to
+const previewImageVisible = ref(false);
+const previewImageUrl = ref('');
+
+function openImagePreview(url) {
+    if (!url) return;
+    previewImageUrl.value = url;
+    previewImageVisible.value = true;
+}
+
+async function handleEditFileChange(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+        const dataUrl = await readImageFileAsDataUrl(file, {
+            maxWidth: 1200,
+            maxHeight: 1600,
+            quality: 0.85,
+        });
+        editForm.anhMinhChung = dataUrl;
+        toast.add({
+            severity: 'info',
+            summary: 'Đã tải ảnh lên',
+            detail: `Tệp: ${file.name}`,
+            life: 2500,
+        });
+    } catch (err) {
+        toast.add({
+            severity: 'error',
+            summary: 'Lỗi tải ảnh',
+            detail: err.message,
+            life: 4000,
+        });
+    }
+}
+
+// Chi tiết & Xử lý thanh toán
 const detailDialogVisible = ref(false);
 const selectedDetailPayment = ref(null);
+const confirming = ref(false);
+
+const rejectDialogVisible = ref(false);
+const rejectReason = ref('');
+const rejecting = ref(false);
 
 function openDetailDialog(item) {
     selectedDetailPayment.value = item;
     detailDialogVisible.value = true;
+}
+
+function openProcessDialog(item) {
+    selectedDetailPayment.value = item;
+    detailDialogVisible.value = true;
+}
+
+function openRejectDialog() {
+    rejectReason.value = '';
+    rejectDialogVisible.value = true;
+}
+
+async function handleConfirmReject() {
+    if (!selectedDetailPayment.value) return;
+    rejecting.value = true;
+    try {
+        const res = await thanhToanService.huyThanhToan(selectedDetailPayment.value._id, {
+            lyDo: rejectReason.value.trim() || 'Thủ thư từ chối thanh toán',
+        });
+        toast.add({
+            severity: 'warn',
+            summary: 'Đã từ chối',
+            detail: res.message || 'Đã từ chối giao dịch thanh toán.',
+            life: 3500,
+        });
+        rejectDialogVisible.value = false;
+        detailDialogVisible.value = false;
+        await fetchPayments();
+    } catch (err) {
+        toast.add({
+            severity: 'error',
+            summary: 'Lỗi',
+            detail: err.message,
+            life: 4000,
+        });
+    } finally {
+        rejecting.value = false;
+    }
+}
+
+async function handleConfirmFromDialog() {
+    if (!selectedDetailPayment.value) return;
+    confirming.value = true;
+    try {
+        const res = await thanhToanService.xacNhanThanhToan(selectedDetailPayment.value._id, {});
+        toast.add({
+            severity: 'success',
+            summary: 'Đã xác nhận thanh toán',
+            detail: res.message || 'Xác nhận thanh toán hợp lệ thành công.',
+            life: 4000,
+        });
+        detailDialogVisible.value = false;
+        await fetchPayments();
+    } catch (err) {
+        toast.add({
+            severity: 'error',
+            summary: 'Lỗi',
+            detail: err.message,
+            life: 4000,
+        });
+    } finally {
+        confirming.value = false;
+    }
 }
 
 async function fetchPayments() {
@@ -266,6 +374,7 @@ function openEditDialog(item) {
     editingPayment.value = item;
     editForm.phuongThuc = item.phuongThuc || 'tienMat';
     editForm.ghiChu = item.ghiChu || '';
+    editForm.anhMinhChung = item.anhMinhChung || '';
     editDialogVisible.value = true;
 }
 
@@ -276,12 +385,13 @@ async function handleSaveEdit() {
         await thanhToanService.capNhatThanhToan(editingPayment.value._id, {
             phuongThuc: editForm.phuongThuc,
             ghiChu: editForm.ghiChu,
+            anhMinhChung: editForm.anhMinhChung,
         });
         editDialogVisible.value = false;
         toast.add({
             severity: 'success',
-            summary: 'Đã cập nhật',
-            detail: 'Cập nhật giao dịch thành công.',
+            summary: 'Thành công',
+            detail: 'Đã cập nhật thông tin thanh toán.',
             life: 3000,
         });
         await fetchPayments();
@@ -406,7 +516,7 @@ onMounted(() => {
                 :rowsPerPageOptions="[10, 20, 50]"
                 emptyMessage="Không có giao dịch thanh toán nào."
             >
-                <Column field="maThanhToan" header="Mã GD" />
+                <Column field="maThanhToan" header="Mã GD" style="max-width: 190px; overflow-wrap: anywhere" />
                 <Column header="Độc giả">
                     <template #body="{ data }">
                         <strong>
@@ -415,7 +525,7 @@ onMounted(() => {
                         <div class="cr-muted">{{ data.maDocGia?.maDocGia }}</div>
                     </template>
                 </Column>
-                <Column header="Loại phí">
+                <Column header="Loại phí" style="max-width: 130px;">
                     <template #body="{ data }">
                         <StatusTag type="loaiThanhToan" :value="data.loai" />
                     </template>
@@ -425,26 +535,38 @@ onMounted(() => {
                         <strong>{{ formatCurrency(data.soTien) }}</strong>
                     </template>
                 </Column>
-                <Column header="Trạng thái">
+                <Column header="Phương thức" style="max-width: 140px;">
+                    <template #body="{ data }">
+                        <div class="cr-items-center cr-gap-xs">
+                            <span>{{ getPhuongThucLabel(data.phuongThuc) }}</span>
+                        </div>
+                    </template>
+                </Column>
+                <Column header="Trạng thái" style="max-width: 110px;">
                     <template #body="{ data }">
                         <StatusTag type="thanhToan" :value="data.trangThai" />
                     </template>
                 </Column>
                 <Column header="Thao tác">
                     <template #body="{ data }">
-                        <div class="cr-items-center">
-                            <Button
-                                label="Chi tiết"
-                                severity="secondary"
-                                outlined
-                                size="small"
-                                @click="openDetailDialog(data)"
-                            />
+                        <div class="cr-items-center cr-gap-xs">
                             <template v-if="data.trangThai === 'choXacNhan'">
                                 <Button
-                                    label="Xác nhận"
+                                    v-if="data.phuongThuc === 'tienMat' || data.anhMinhChung"
+                                    label="Xử lý"
                                     size="small"
-                                    @click="handleConfirmPayment(data)"
+                                    severity="primary"
+                                    title="Xem thông tin và xử lý duyệt/từ chối thanh toán"
+                                    @click="openProcessDialog(data)"
+                                />
+                                <Button
+                                    v-else
+                                    label="Chi tiết"
+                                    severity="secondary"
+                                    outlined
+                                    size="small"
+                                    title="Xem chi tiết (độc giả chưa gửi ảnh minh chứng)"
+                                    @click="openDetailDialog(data)"
                                 />
                                 <Button
                                     icon="pi pi-pencil"
@@ -454,13 +576,14 @@ onMounted(() => {
                                     title="Sửa phương thức / ghi chú"
                                     @click="openEditDialog(data)"
                                 />
+                            </template>
+                            <template v-else>
                                 <Button
-                                    icon="pi pi-times"
-                                    severity="warn"
+                                    label="Chi tiết"
+                                    severity="secondary"
                                     outlined
                                     size="small"
-                                    title="Hủy giao dịch"
-                                    @click="handleCancelPayment(data)"
+                                    @click="openDetailDialog(data)"
                                 />
                             </template>
                             <Button
@@ -587,6 +710,44 @@ onMounted(() => {
                 <label class="cr-label">Ghi chú</label>
                 <InputText v-model="editForm.ghiChu" fluid />
             </div>
+            <div class="cr-field">
+                <label class="cr-label">Ảnh minh chứng thanh toán</label>
+                <input
+                    ref="editFileInputRef"
+                    type="file"
+                    accept="image/*"
+                    style="display: none"
+                    @change="handleEditFileChange"
+                />
+                <div class="cr-flex cr-items-center cr-gap-sm">
+                    <Button
+                        type="button"
+                        label="Chọn tệp ảnh"
+                        icon="pi pi-upload"
+                        severity="secondary"
+                        outlined
+                        size="small"
+                        @click="editFileInputRef?.click()"
+                    />
+                    <Button
+                        v-if="editForm.anhMinhChung"
+                        label="Xóa ảnh"
+                        icon="pi pi-times"
+                        severity="danger"
+                        text
+                        size="small"
+                        @click="editForm.anhMinhChung = ''"
+                    />
+                </div>
+                <div v-if="editForm.anhMinhChung" style="margin-top: 6px">
+                    <img
+                        :src="editForm.anhMinhChung"
+                        alt="Ảnh minh chứng"
+                        style="max-width: 140px; max-height: 100px; border-radius: 6px; border: 1px solid #cbd5e1; cursor: pointer"
+                        @click="openImagePreview(editForm.anhMinhChung)"
+                    />
+                </div>
+            </div>
             <div class="cr-flex cr-gap-sm" style="justify-content: flex-end">
                 <Button
                     label="Hủy"
@@ -603,12 +764,17 @@ onMounted(() => {
         </div>
     </Dialog>
 
-    <!-- Dialog Chi tiết giao dịch thanh toán -->
+    <!-- Dialog Chi tiết & Xử lý giao dịch thanh toán -->
     <Dialog
         v-model:visible="detailDialogVisible"
-        header="Chi tiết giao dịch thanh toán"
+        :header="
+            selectedDetailPayment?.trangThai === 'choXacNhan' &&
+            (selectedDetailPayment?.phuongThuc === 'tienMat' || selectedDetailPayment?.anhMinhChung)
+                ? 'Xử lý giao dịch thanh toán'
+                : 'Chi tiết giao dịch thanh toán'
+        "
         modal
-        :style="{ width: '520px', maxWidth: '95vw' }"
+        :style="{ width: '560px', maxWidth: '95vw' }"
     >
         <div v-if="selectedDetailPayment" class="cr-flex-col cr-gap-md">
             <div class="cr-grid-2">
@@ -683,7 +849,7 @@ onMounted(() => {
                     </div>
                 </div>
                 <div>
-                    <span class="cr-muted">Ngày xác nhận:</span>
+                    <span class="cr-muted">Ngày xử lý:</span>
                     <div>
                         <strong>
                             {{ formatDate(selectedDetailPayment.ngayThanhToan, true) }}
@@ -706,15 +872,121 @@ onMounted(() => {
                         {{ selectedDetailPayment.ghiChu || '—' }}
                     </div>
                 </div>
+                <div class="cr-field-full">
+                    <span class="cr-muted">Ảnh minh chứng thanh toán:</span>
+                    <div v-if="selectedDetailPayment.anhMinhChung" style="margin-top: 8px">
+                        <img
+                            :src="selectedDetailPayment.anhMinhChung"
+                            alt="Ảnh minh chứng thanh toán"
+                            style="
+                                max-width: 240px;
+                                max-height: 180px;
+                                object-fit: contain;
+                                border-radius: 8px;
+                                border: 1.5px solid var(--p-content-border-color, var(--cr-border));
+                                cursor: pointer;
+                                box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+                                transition: transform 0.2s;
+                            "
+                            title="Bấm để xem ảnh phóng to"
+                            @click="openImagePreview(selectedDetailPayment.anhMinhChung)"
+                        />
+                        <div class="cr-muted" style="font-size: 0.8rem; margin-top: 4px">
+                            (Bấm vào ảnh để xem kích thước lớn)
+                        </div>
+                    </div>
+                    <div v-else class="cr-muted" style="margin-top: 4px; font-style: italic">
+                        {{
+                            selectedDetailPayment.phuongThuc === 'tienMat'
+                                ? 'Thanh toán tiền mặt tại quầy (không yêu cầu ảnh minh chứng)'
+                                : 'Độc giả chưa tải lên ảnh minh chứng thanh toán'
+                        }}
+                    </div>
+                </div>
             </div>
-            <div class="cr-flex" style="justify-content: flex-end">
+            <div class="cr-flex cr-gap-sm" style="justify-content: flex-end; width: 100%; margin-top: 0.5rem">
                 <Button
                     label="Đóng"
                     severity="secondary"
                     outlined
                     @click="detailDialogVisible = false"
                 />
+                <template
+                    v-if="
+                        selectedDetailPayment.trangThai === 'choXacNhan' &&
+                        (selectedDetailPayment.phuongThuc === 'tienMat' || selectedDetailPayment.anhMinhChung)
+                    "
+                >
+                    <Button
+                        label="Từ chối"
+                        icon="pi pi-times"
+                        severity="danger"
+                        outlined
+                        @click="openRejectDialog"
+                    />
+                    <Button
+                        label="Xác nhận"
+                        icon="pi pi-check"
+                        severity="primary"
+                        :loading="confirming"
+                        @click="handleConfirmFromDialog"
+                    />
+                </template>
             </div>
+        </div>
+    </Dialog>
+
+    <!-- Dialog Từ chối giao dịch thanh toán -->
+    <Dialog
+        v-model:visible="rejectDialogVisible"
+        header="Từ chối giao dịch thanh toán"
+        modal
+        :style="{ width: '420px', maxWidth: '95vw' }"
+    >
+        <div class="cr-flex-col cr-gap-md">
+            <p class="cr-muted" style="margin: 0">
+                Xác nhận từ chối giao dịch
+                <strong>{{ selectedDetailPayment?.maThanhToan }}</strong>? Giao dịch sẽ được chuyển sang trạng thái Đã hủy.
+            </p>
+            <div class="cr-field">
+                <label class="cr-label">Lý do từ chối</label>
+                <InputText
+                    v-model="rejectReason"
+                    placeholder="VD: Chưa nhận được tiền, sai số tiền, ảnh mờ..."
+                    fluid
+                />
+            </div>
+            <div class="cr-flex cr-gap-sm" style="justify-content: flex-end">
+                <Button
+                    label="Quay lại"
+                    severity="secondary"
+                    outlined
+                    @click="rejectDialogVisible = false"
+                />
+                <Button
+                    label="Xác nhận từ chối"
+                    severity="danger"
+                    icon="pi pi-times"
+                    :loading="rejecting"
+                    @click="handleConfirmReject"
+                />
+            </div>
+        </div>
+    </Dialog>
+
+    <!-- Dialog xem ảnh minh chứng phóng to -->
+    <Dialog
+        v-model:visible="previewImageVisible"
+        header="Ảnh minh chứng thanh toán"
+        modal
+        :style="{ width: '520px', maxWidth: '95vw' }"
+    >
+        <div style="text-align: center; padding: 0.5rem">
+            <img
+                :src="previewImageUrl"
+                alt="Ảnh minh chứng"
+                style="max-width: 100%; max-height: 75vh; object-fit: contain; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15)"
+            />
         </div>
     </Dialog>
 </template>

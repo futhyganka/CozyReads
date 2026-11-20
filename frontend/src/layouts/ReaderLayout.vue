@@ -66,22 +66,25 @@ function handleLogout() {
     <div class="cr-app-shell">
         <header style="border-bottom: 1px solid var(--cr-border); background: var(--cr-card); position: sticky; top: 0; z-index: 30;">
             <div class="cr-container">
-                <Menubar :model="menuItems" style="border: none; padding: 0.75rem 0;">
+                <Menubar
+                    :model="menuItems"
+                    breakpoint="992px"
+                    class="cr-reader-menubar"
+                >
                     <template #start>
                         <div
-                            class="cr-items-center"
-                            style="cursor: pointer; margin-right: 1.5rem"
+                            class="cr-items-center cr-header-logo-wrap"
                             @click="router.push('/')"
                         >
                             <img
                                 :src="logoImg"
                                 alt="CozyReads Logo"
-                                style="height: 44px; width: auto; object-fit: contain; display: block"
+                                class="cr-header-logo-img"
                             />
                         </div>
                     </template>
                     <template #end>
-                        <div class="cr-items-center cr-flex-wrap">
+                        <div class="cr-header-end-wrap">
                             <template v-if="authStore.isReader">
                                 <Tag
                                     v-if="
@@ -93,12 +96,13 @@ function handleLogout() {
                                     "
                                     :value="`${authStore.userProfile.diemDocGia} điểm uy tín`"
                                     severity="success"
+                                    class="cr-reader-points-tag"
                                 />
                                 <Button
                                     severity="secondary"
                                     outlined
                                     size="small"
-                                    style="display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.3rem 0.65rem"
+                                    class="cr-reader-user-btn"
                                     @click="router.push('/tai-khoan')"
                                 >
                                     <img
@@ -106,7 +110,7 @@ function handleLogout() {
                                         :src="authStore.userProfile.avatar"
                                         alt="Avatar"
                                         referrerpolicy="no-referrer"
-                                        style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover; display: block; flex-shrink: 0"
+                                        class="cr-reader-user-avatar"
                                     />
                                     <i v-else class="pi pi-user"></i>
                                     <span>{{ authStore.displayName }}</span>
@@ -210,3 +214,118 @@ function handleLogout() {
         <CozySmartWidget />
     </div>
 </template>
+
+<style scoped>
+.cr-reader-menubar {
+    border: none !important;
+    background: transparent !important;
+    padding: 0.65rem 0 !important;
+}
+
+.cr-header-logo-wrap {
+    cursor: pointer;
+    margin-right: 1.25rem;
+    flex-shrink: 0;
+}
+
+.cr-header-logo-img {
+    height: 42px;
+    width: auto;
+    object-fit: contain;
+    display: block;
+}
+
+.cr-header-end-wrap {
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: 0.5rem;
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+.cr-reader-user-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.3rem 0.65rem;
+    white-space: nowrap;
+}
+
+.cr-reader-user-avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    object-fit: cover;
+    display: block;
+    flex-shrink: 0;
+}
+
+/* Trên màn hình desktop và tablet (iPad landscape) >= 993px:
+   Ép toàn bộ thanh Menu và nhóm tài khoản trên 1 hàng thẳng, không bị rớt dòng */
+@media (min-width: 993px) {
+    .cr-reader-menubar {
+        flex-wrap: nowrap !important;
+    }
+
+    :deep(.cr-reader-menubar .p-menubar-root-list) {
+        display: flex !important;
+        align-items: center !important;
+        flex-wrap: nowrap !important;
+        gap: 0.2rem !important;
+        white-space: nowrap !important;
+    }
+
+    :deep(.cr-reader-menubar .p-menubar-item-link) {
+        padding: 0.5rem 0.65rem !important;
+        font-size: 0.91rem !important;
+        border-radius: 8px !important;
+        white-space: nowrap !important;
+    }
+
+    :deep(.cr-reader-menubar .p-menubar-item-icon) {
+        font-size: 0.9rem !important;
+        margin-right: 0.35rem !important;
+    }
+
+    :deep(.cr-reader-menubar .p-menubar-end) {
+        margin-left: auto !important;
+        flex-shrink: 0 !important;
+    }
+}
+
+/* Tinh chỉnh riêng cho iPad / màn hình vừa (993px - 1200px) */
+@media (min-width: 993px) and (max-width: 1200px) {
+    .cr-header-logo-wrap {
+        margin-right: 0.65rem;
+    }
+
+    .cr-header-logo-img {
+        height: 38px;
+    }
+
+    :deep(.cr-reader-menubar .p-menubar-item-link) {
+        padding: 0.42rem 0.5rem !important;
+        font-size: 0.85rem !important;
+    }
+
+    :deep(.cr-reader-menubar .p-menubar-item-icon) {
+        font-size: 0.82rem !important;
+        margin-right: 0.25rem !important;
+    }
+
+    .cr-header-end-wrap {
+        gap: 0.35rem;
+    }
+
+    .cr-reader-points-tag {
+        font-size: 0.78rem !important;
+        padding: 0.2rem 0.45rem !important;
+    }
+
+    .cr-reader-user-btn {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.84rem;
+    }
+}
+</style>

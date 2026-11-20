@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue';
+import { ref, reactive, onMounted, onUnmounted, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
 import { useConfirm } from 'primevue/useconfirm';
@@ -61,25 +61,7 @@ const filters = reactive({
     limit: gridColumns.value * DEFAULT_ROWS_COUNT,
 });
 
-const showFilterPanel = ref(
-    Boolean(
-        route.query.danhMuc ||
-        route.query.tacGia ||
-        route.query.maNXB ||
-        route.query.conHang === 'true'
-    )
-);
-
-const activeFilterCount = computed(() => {
-    let count = 0;
-    if (filters.danhMuc) count += 1;
-    if (filters.tacGia) count += 1;
-    if (filters.maNXB) count += 1;
-    if (filters.minGia !== null && filters.minGia !== '') count += 1;
-    if (filters.maxGia !== null && filters.maxGia !== '') count += 1;
-    if (filters.conHang) count += 1;
-    return count;
-});
+// Không cần ẩn hiện bộ lọc trên trang /kham-pha, hiển thị trực tiếp
 
 function handleViewportResize() {
     const nextCols = getColumnsByViewport();
@@ -219,9 +201,6 @@ watch(
         if (q.tacGia !== undefined) filters.tacGia = q.tacGia || null;
         if (q.maNXB !== undefined) filters.maNXB = q.maNXB || null;
         if (q.conHang !== undefined) filters.conHang = q.conHang === 'true';
-        if (q.danhMuc || q.tacGia || q.maNXB || q.conHang === 'true') {
-            showFilterPanel.value = true;
-        }
         fetchBooks();
     },
 );
@@ -275,11 +254,8 @@ onUnmounted(() => {
                     </button>
                 </div>
 
-                <!-- Khung bộ lọc chi tiết (ẩn/hiện khi bấm nút "Bộ lọc") -->
-                <div
-                    v-show="showFilterPanel"
-                    class="cr-advanced-filter-panel"
-                >
+                <!-- Khung bộ lọc chi tiết (hiển thị trực tiếp, không cần bấm) -->
+                <div class="cr-advanced-filter-panel">
                     <div class="cr-grid-3">
                         <div class="cr-field">
                             <label class="cr-label">Danh mục sách</label>

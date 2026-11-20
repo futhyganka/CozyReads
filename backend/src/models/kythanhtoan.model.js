@@ -74,6 +74,10 @@ const kyThanhToanSchema = new Schema(
             type: String,
             default: '',
         },
+        anhMinhChung: {
+            type: String,
+            default: '',
+        },
         lanGuiMailCuoi: {
             type: Date,
             default: null,

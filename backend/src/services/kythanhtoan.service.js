@@ -26,6 +26,7 @@ class KyThanhToanService {
             phuongThuc = 'tienMat',
             goiGiaHan,
             ghiChu = '',
+            anhMinhChung = '',
         } = data;
 
         const dgId = maDocGia || docGia;
@@ -76,6 +77,7 @@ class KyThanhToanService {
             goiGiaHan: goiGiaHan || null,
             trangThai: TRANG_THAI_THANH_TOAN.CHO_XAC_NHAN,
             ghiChu,
+            anhMinhChung,
         });
 
         await thanhToan.save();
@@ -161,6 +163,7 @@ class KyThanhToanService {
 
         if (data.phuongThuc) thanhToan.phuongThuc = data.phuongThuc;
         if (data.ghiChu !== undefined) thanhToan.ghiChu = data.ghiChu;
+        if (data.anhMinhChung !== undefined) thanhToan.anhMinhChung = data.anhMinhChung;
 
         await thanhToan.save();
         return thanhToan;
@@ -264,7 +267,7 @@ class KyThanhToanService {
     /**
      * Hủy giao dịch thanh toán
      */
-    static async huyThanhToan(id, lyDo = '') {
+    static async huyThanhToan(id, lyDo = '', msnvId = null, ngayHuy = new Date()) {
         const thanhToan = await KyThanhToan.findById(id);
         if (!thanhToan) {
             throw new ApiError(404, 'Không tìm thấy giao dịch thanh toán.');
@@ -275,9 +278,47 @@ class KyThanhToanService {
         }
 
         thanhToan.trangThai = TRANG_THAI_THANH_TOAN.DA_HUY;
+        if (msnvId) thanhToan.msnv = msnvId;
+        thanhToan.ngayThanhToan = new Date(ngayHuy);
         if (lyDo) thanhToan.ghiChu += ` [Hủy: ${lyDo}]`;
         await thanhToan.save();
-        return thanhToan;
+
+        // Nếu là khoản bồi thường mất sách và lượt mượn vẫn chưa hoàn tất bồi thường,
+        // tự động tạo 1 khoản bồi thường mới ở trạng thái choXacNhan để độc giả tiếp tục thanh toán
+        let khoanMoi = null;
+        if (
+            thanhToan.loai === LOAI_THANH_TOAN.PHI_PHAT_MAT_SACH &&
+            thanhToan.maTheoDoi
+        ) {
+            const phieuMuon = await TheoDoiMuonSach.findById(thanhToan.maTheoDoi);
+            if (
+                phieuMuon &&
+                phieuMuon.trangThai !== TRANG_THAI_MUON.DA_BOI_THUONG &&
+                phieuMuon.trangThai !== TRANG_THAI_MUON.DA_TRA
+            ) {
+                const maThanhToanMoi = `BOITHUONG_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+                const ghiChuGoc = (thanhToan.ghiChu || '')
+                    .replace(/\s*\[Hủy:[^\]]*\]/g, '')
+                    .trim();
+
+                khoanMoi = new KyThanhToan({
+                    maThanhToan: maThanhToanMoi,
+                    loai: LOAI_THANH_TOAN.PHI_PHAT_MAT_SACH,
+                    soTien: thanhToan.soTien,
+                    maDocGia: thanhToan.maDocGia,
+                    maTheoDoi: thanhToan.maTheoDoi,
+                    msnv: thanhToan.msnv || null,
+                    phuongThuc: 'tienMat',
+                    trangThai: TRANG_THAI_THANH_TOAN.CHO_XAC_NHAN,
+                    ghiChu: ghiChuGoc || 'Bồi thường mất/hỏng sách',
+                });
+                await khoanMoi.save();
+            }
+        }
+
+        const resObj = thanhToan.toObject();
+        resObj.khoanMoi = khoanMoi;
+        return resObj;
     }
 
     /**

@@ -25,10 +25,10 @@ router.post(
     KyThanhToanController.taoThanhToan,
 );
 
-// Cập nhật phương thức hoặc ghi chú thanh toán
+// Cập nhật phương thức hoặc ghi chú thanh toán (Nhân viên, Admin hoặc Độc giả cập nhật thanh toán của mình)
 router.put(
     '/:id',
-    checkPermission(PERMISSIONS.PAYMENTS_MANAGE),
+    checkPermission(PERMISSIONS.PAYMENTS_MANAGE, PERMISSIONS.PAYMENTS_READ_OWN),
     KyThanhToanController.capNhatThanhToan,
 );
 

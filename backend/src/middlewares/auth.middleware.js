@@ -69,18 +69,20 @@ function requireAuth(req, res, next) {
 
 /**
  * Middleware phân quyền dựa vào Permissions Matrix
- * @param {string} requiredPermission
+ * Cho phép truyền 1 hoặc nhiều permissions (logic OR: người dùng có ít nhất 1 quyền sẽ được phép)
+ * @param {...string} requiredPermissions
  */
-function checkPermission(requiredPermission) {
+function checkPermission(...requiredPermissions) {
     return (req, res, next) => {
         const userRole = req.user?.maVaiTro || req.user?.role || ROLES.KHACH;
         const permissions = ROLE_PERMISSIONS[userRole] || [];
 
-        if (!permissions.includes(requiredPermission)) {
+        const hasPermission = requiredPermissions.some((p) => permissions.includes(p));
+        if (!hasPermission) {
             return next(
                 new ApiError(
                     403,
-                    `Truy cập bị từ chối. Vai trò [${userRole}] không có quyền [${requiredPermission}].`,
+                    `Truy cập bị từ chối. Vai trò [${userRole}] không có quyền [${requiredPermissions.join(' hoặc ')}].`,
                 ),
             );
         }

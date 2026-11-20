@@ -70,6 +70,20 @@ class KyThanhToanController {
     // [PUT] /api/kythanhtoans/:id
     static async capNhatThanhToan(req, res, next) {
         try {
+            const callerRole = req.user?.role || req.user?.maVaiTro;
+            const callerId = req.user?._id?.toString();
+
+            if (callerRole === 'docGia') {
+                const ttHienTai = await KyThanhToanService.getChiTietThanhToan(req.params.id);
+                const ownerId = (ttHienTai.maDocGia?._id || ttHienTai.maDocGia)?.toString();
+                if (callerId && ownerId !== callerId) {
+                    return res.status(403).json({
+                        success: false,
+                        message: 'Bạn không có quyền cập nhật giao dịch thanh toán của độc giả khác.',
+                    });
+                }
+            }
+
             const tt = await KyThanhToanService.capNhatThanhToan(
                 req.params.id,
                 req.body,
@@ -113,9 +127,16 @@ class KyThanhToanController {
     // [POST] /api/kythanhtoans/:id/huy
     static async huyThanhToan(req, res, next) {
         try {
+            let msnvId = req.body.msnvId;
+            if (!msnvId && req.user?.msnv) {
+                msnvId = req.user._id;
+            }
+
             const ketQua = await KyThanhToanService.huyThanhToan(
                 req.params.id,
                 req.body.lyDo,
+                msnvId,
+                req.body.ngayHuy || new Date(),
             );
             res.json({
                 success: true,

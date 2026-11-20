@@ -172,6 +172,35 @@ async function testThanhToan() {
     assert(itemNhac !== undefined);
     assert.strictEqual(itemNhac.soLanNhacNho, 2);
 
+    // Case 6: Thay đổi phương thức thanh toán và cập nhật ảnh minh chứng
+    console.log('Case 6: Đổi phương thức thanh toán và gửi ảnh minh chứng');
+    const updatedTT = await ThanhToanService.capNhatThanhToan(ttMatSach2._id, {
+        phuongThuc: 'chuyenKhoan',
+        anhMinhChung: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+        ghiChu: 'Đã chuyển khoản qua VCB',
+    });
+    assert.strictEqual(updatedTT.phuongThuc, 'chuyenKhoan');
+    assert(updatedTT.anhMinhChung.startsWith('data:image/png;base64,'));
+    assert.strictEqual(updatedTT.ghiChu, 'Đã chuyển khoản qua VCB');
+
+    // Case 7: Hủy khoản bồi thường mất sách -> Ghi nhận nhân viên xử lý, ngày xử lý & tự động tạo 1 khoản bồi thường mới
+    console.log('Case 7: Hủy khoản bồi thường mất sách -> Ghi nhận nhân viên, ngày xử lý & tạo khoản bồi thường mới');
+    const thoiDiemHuy = new Date();
+    const huyRes = await ThanhToanService.huyThanhToan(
+        ttMatSach2._id,
+        'Chưa nhận được chuyển khoản',
+        nhanVien._id,
+        thoiDiemHuy,
+    );
+    assert.strictEqual(huyRes.trangThai, TRANG_THAI_THANH_TOAN.DA_HUY);
+    assert.strictEqual(huyRes.msnv.toString(), nhanVien._id.toString());
+    assert(huyRes.ngayThanhToan !== null && huyRes.ngayThanhToan !== undefined);
+    assert.strictEqual(new Date(huyRes.ngayThanhToan).toISOString(), thoiDiemHuy.toISOString());
+    assert(huyRes.khoanMoi !== null, 'Phải sinh ra khoản bồi thường mới');
+    assert.strictEqual(huyRes.khoanMoi.trangThai, TRANG_THAI_THANH_TOAN.CHO_XAC_NHAN);
+    assert.strictEqual(huyRes.khoanMoi.soTien, ttMatSach2.soTien);
+    assert.strictEqual(huyRes.khoanMoi.maDocGia.toString(), ttMatSach2.maDocGia.toString());
+
     console.log('✅ tests/thanhtoan.test.js PASSED ALL CHECKS!');
 }
 
